@@ -462,7 +462,7 @@ task.spawn(function()
 	end
 end)
 ------------------------------------------------
--- COORDINATE TOOL ADDON (FIXED)
+-- COORDINATE TOOL ADDON (FINAL FIXED VERSION)
 ------------------------------------------------
 
 local TweenService = game:GetService("TweenService")
@@ -478,7 +478,7 @@ local function copyToClipboard(text)
 end
 
 ------------------------------------------------
--- FLOATING COORD DISPLAY
+-- COORD DISPLAY POPUP
 ------------------------------------------------
 local coordGui = Instance.new("ScreenGui")
 coordGui.Name = "CoordPopup"
@@ -506,6 +506,8 @@ local function flashCoords()
 	if not root then return end
 
 	local pos = root.Position
+
+	-- YOUR FORMAT (important)
 	local text = string.format("X: %.1f | Y: %.1f | Z: %.1f", pos.X, pos.Y, pos.Z)
 
 	copyToClipboard(text)
@@ -529,7 +531,7 @@ local function flashCoords()
 end
 
 ------------------------------------------------
--- TELEPORT MENU
+-- TELEPORT UI
 ------------------------------------------------
 local tpGui = Instance.new("ScreenGui")
 tpGui.Name = "CoordTP"
@@ -548,7 +550,7 @@ Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 local box = Instance.new("TextBox")
 box.Size = UDim2.new(0.9, 0, 0, 40)
 box.Position = UDim2.new(0.05, 0, 0.2, 0)
-box.PlaceholderText = "X, Y, Z"
+box.PlaceholderText = "Paste coords here"
 box.Text = ""
 box.TextColor3 = Color3.fromRGB(255,255,255)
 box.BackgroundColor3 = Color3.fromRGB(40,40,55)
@@ -567,7 +569,7 @@ button.Parent = frame
 Instance.new("UICorner", button)
 
 ------------------------------------------------
--- FIXED TELEPORT FUNCTION
+-- FIXED TELEPORT PARSER (SUPPORTS YOUR FORMAT)
 ------------------------------------------------
 local function teleportToCoords()
 	local char = player.Character
@@ -576,7 +578,20 @@ local function teleportToCoords()
 	local root = char:FindFirstChild("HumanoidRootPart")
 	if not root then return end
 
-	local x, y, z = string.match(box.Text, "([%-%d%.]+)%s*,%s*([%-%d%.]+)%s*,%s*([%-%d%.]+)")
+	local text = box.Text
+
+	local x, y, z
+
+	-- FORMAT 1: YOUR CLIPBOARD FORMAT
+	x = string.match(text, "X:%s*([%-%d%.]+)")
+	y = string.match(text, "Y:%s*([%-%d%.]+)")
+	z = string.match(text, "Z:%s*([%-%d%.]+)")
+
+	-- FORMAT 2: fallback comma format
+	if not x or not y or not z then
+		x, y, z = string.match(text, "([%-%d%.]+)%s*,%s*([%-%d%.]+)%s*,%s*([%-%d%.]+)")
+	end
+
 	if not x or not y or not z then
 		addLog("Invalid coords format")
 		return
