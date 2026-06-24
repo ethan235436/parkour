@@ -1,0 +1,404 @@
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+
+------------------------------------------------
+-- CONFIG (EDIT THESE)
+------------------------------------------------
+local CONFIG = {
+	forwardDefault = 60,
+	forwardMin = 10,
+	forwardMax = 1000,
+
+	fadeTime = 0.25,
+	menuTransparency = 0.50,
+
+	resetKey = Enum.KeyCode.C,
+
+	menuKey = Enum.KeyCode.LeftAlt,
+
+	waypointSetKey = Enum.KeyCode.F2,
+	waypointTeleportKey = Enum.KeyCode.F3
+}
+
+------------------------------------------------
+-- STATE
+------------------------------------------------
+local featuresEnabled = true
+local scriptKilled = false
+local connections = {}
+
+local waypoint = nil
+
+------------------------------------------------
+-- GUI
+------------------------------------------------
+local gui = Instance.new("ScreenGui")
+gui.Name = "LaunchUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 350, 0, 250) -- 🔧 FIX: slightly taller (was 230)
+frame.Position = UDim2.new(0.5, -175, 0.5, -115)
+frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+frame.BackgroundTransparency = CONFIG.menuTransparency
+frame.BorderColor3 = Color3.fromRGB(0, 255, 255)
+frame.BorderSizePixel = 1
+frame.Visible = true
+frame.Parent = gui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+------------------------------------------------
+-- TOP BAR
+------------------------------------------------
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 35)
+topBar.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+topBar.BorderSizePixel = 0
+topBar.Parent = frame
+
+Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 10)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 1, 0)
+title.BackgroundTransparency = 1
+title.Text = "LAUNCH SYSTEM"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(0, 255, 255)
+title.Parent = topBar
+
+------------------------------------------------
+-- DRAGGING (MAIN UI)
+------------------------------------------------
+local dragging, dragInput, dragStart, startPos
+
+connections.dragStart = topBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+	end
+end)
+
+connections.dragEnd = UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+connections.dragMove = UIS.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+------------------------------------------------
+-- SLIDER
+------------------------------------------------
+local function createSlider(name, yPos, defaultValue)
+	local value = defaultValue
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0.9, 0, 0, 20)
+	label.Position = UDim2.new(0.05, 0, 0, yPos)
+	label.BackgroundTransparency = 1
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 15
+	label.TextColor3 = Color3.fromRGB(220,220,220)
+	label.Text = name .. ": " .. value
+	label.Parent = frame
+
+	local bar = Instance.new("Frame")
+	bar.Size = UDim2.new(0.9, 0, 0, 10)
+	bar.Position = UDim2.new(0.05, 0, 0, yPos + 28)
+	bar.BackgroundColor3 = Color3.fromRGB(30,30,35)
+	bar.BorderSizePixel = 0
+	bar.Parent = frame
+
+	Instance.new("UICorner", bar)
+
+	local fill = Instance.new("Frame")
+	fill.Size = UDim2.new((value - CONFIG.forwardMin) / (CONFIG.forwardMax - CONFIG.forwardMin), 0, 1, 0)
+	fill.BackgroundColor3 = Color3.fromRGB(0,255,255)
+	fill.BorderSizePixel = 0
+	fill.Parent = bar
+
+	Instance.new("UICorner", fill)
+
+	local draggingSlider = false
+
+	local function setValue(v)
+		value = math.clamp(v, CONFIG.forwardMin, CONFIG.forwardMax)
+		local percent = (value - CONFIG.forwardMin) / (CONFIG.forwardMax - CONFIG.forwardMin)
+
+		fill.Size = UDim2.new(percent, 0, 1, 0)
+		label.Text = name .. ": " .. value
+
+		-- 🔧 FIX: NOW LOGS SLIDER CHANGES
+		addLog(name .. " set to " .. value)
+	end
+
+	bar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			draggingSlider = true
+		end
+	end)
+
+	bar.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			draggingSlider = false
+		end
+	end)
+
+	connections.sliderMove = UIS.InputChanged:Connect(function(input)
+		if draggingSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local percent = math.clamp(
+				(input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X,
+				0,
+				1
+			)
+
+			setValue(math.floor(CONFIG.forwardMin + (CONFIG.forwardMax - CONFIG.forwardMin) * percent))
+		end
+	end)
+
+	return {
+		get = function()
+			return value
+		end,
+		set = setValue
+	}
+end
+
+local forwardSlider = createSlider("Forward Power (R)", 105, CONFIG.forwardDefault)
+
+------------------------------------------------
+-- INFO TEXT
+------------------------------------------------
+local info = Instance.new("TextLabel")
+info.Size = UDim2.new(0.9, 0, 0, 60)
+info.Position = UDim2.new(0.05, 0, 0, 160)
+info.BackgroundTransparency = 1
+info.TextColor3 = Color3.fromRGB(0, 200, 200)
+info.Font = Enum.Font.Gotham
+info.TextSize = 13
+info.Text =
+	"R = +5 Speed\nC = Reset\nF = Launch\nF2 = Set WP\nF3 = TP WP\nF4 = Kill\nF5 = DevLog\nALT = Menu"
+info.Parent = frame
+
+------------------------------------------------
+-- ROOT
+------------------------------------------------
+local function getRoot()
+	local char = player.Character
+	if not char then return nil end
+	return char:FindFirstChild("HumanoidRootPart")
+end
+
+------------------------------------------------
+-- DEV LOG SYSTEM
+------------------------------------------------
+local devLogs = {}
+
+local devGui = Instance.new("ScreenGui")
+devGui.Name = "DevLogUI"
+devGui.ResetOnSpawn = false
+devGui.Parent = player:WaitForChild("PlayerGui")
+
+local devFrame = Instance.new("Frame")
+devFrame.Size = UDim2.new(0, 420, 0, 280)
+devFrame.Position = UDim2.new(0.5, -210, 0.2, 0)
+devFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+devFrame.BackgroundTransparency = CONFIG.menuTransparency
+devFrame.BorderColor3 = Color3.fromRGB(255, 0, 255)
+devFrame.BorderSizePixel = 1
+devFrame.Visible = false
+devFrame.Parent = devGui
+
+Instance.new("UICorner", devFrame).CornerRadius = UDim.new(0, 10)
+
+------------------------------------------------
+-- DRAG DEVLOG
+------------------------------------------------
+local devDragging, devDragStart, devStartPos
+
+devFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		devDragging = true
+		devDragStart = input.Position
+		devStartPos = devFrame.Position
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		devDragging = false
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if devDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - devDragStart
+		devFrame.Position = UDim2.new(
+			devStartPos.X.Scale,
+			devStartPos.X.Offset + delta.X,
+			devStartPos.Y.Scale,
+			devStartPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+local devTop = Instance.new("Frame")
+devTop.Size = UDim2.new(1, 0, 0, 35)
+devTop.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+devTop.Parent = devFrame
+
+Instance.new("UICorner", devTop).CornerRadius = UDim.new(0, 10)
+
+local devTitle = Instance.new("TextLabel")
+devTitle.Size = UDim2.new(1, 0, 1, 0)
+devTitle.BackgroundTransparency = 1
+devTitle.Text = "DEV LOG"
+devTitle.TextColor3 = Color3.fromRGB(255, 0, 255)
+devTitle.Font = Enum.Font.GothamBold
+devTitle.TextSize = 18
+devTitle.Parent = devTop
+
+local logBox = Instance.new("TextLabel")
+logBox.Size = UDim2.new(1, -10, 1, -45)
+logBox.Position = UDim2.new(0, 5, 0, 40)
+logBox.BackgroundTransparency = 1
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
+logBox.Font = Enum.Font.Code
+logBox.TextSize = 14
+logBox.TextColor3 = Color3.fromRGB(200, 200, 200)
+logBox.TextWrapped = true
+logBox.Parent = devFrame
+
+local function addLog(text)
+	local t = os.date("%X")
+	table.insert(devLogs, "["..t.."] "..text)
+	if #devLogs > 14 then table.remove(devLogs, 1) end
+	logBox.Text = table.concat(devLogs, "\n")
+end
+
+------------------------------------------------
+-- FADE SYSTEM
+------------------------------------------------
+local menuOpen = true
+local fadeInfo = TweenInfo.new(CONFIG.fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+local function fadeIn()
+	frame.Visible = true
+	TweenService:Create(frame, fadeInfo, {BackgroundTransparency = CONFIG.menuTransparency}):Play()
+end
+
+local function fadeOut()
+	local t = TweenService:Create(frame, fadeInfo, {BackgroundTransparency = 1})
+	t:Play()
+	t.Completed:Wait()
+	frame.Visible = false
+end
+
+------------------------------------------------
+-- WAYPOINT SYSTEM
+------------------------------------------------
+local function setWaypoint()
+	local root = getRoot()
+	if not root then return end
+
+	waypoint = root.Position
+	addLog("Waypoint set")
+end
+
+local function teleportWaypoint()
+	local root = getRoot()
+	if not root or not waypoint then return end
+
+	root.CFrame = CFrame.new(waypoint)
+	addLog("Teleported to waypoint")
+end
+
+------------------------------------------------
+-- LAUNCH
+------------------------------------------------
+local function launchForward()
+	local root = getRoot()
+	if not root then return end
+
+	root.AssemblyLinearVelocity += root.CFrame.LookVector * forwardSlider.get()
+	addLog("Launch executed")
+end
+
+------------------------------------------------
+-- KILL
+------------------------------------------------
+local function killScript()
+	if scriptKilled then return end
+	scriptKilled = true
+
+	for _, c in pairs(connections) do
+		pcall(function() c:Disconnect() end)
+	end
+
+	frame:Destroy()
+	gui:Destroy()
+	addLog("Script killed")
+end
+
+------------------------------------------------
+-- INPUTS
+------------------------------------------------
+connections.main = UIS.InputBegan:Connect(function(input, processed)
+	if processed or scriptKilled then return end
+
+	if input.KeyCode == CONFIG.menuKey then
+		menuOpen = not menuOpen
+		addLog("Menu toggled")
+		if menuOpen then fadeIn() else task.spawn(fadeOut) end
+	end
+
+	if input.KeyCode == Enum.KeyCode.F then
+		launchForward()
+	end
+
+	if input.KeyCode == Enum.KeyCode.R then
+		forwardSlider.set(forwardSlider.get() + 5)
+		addLog("Speed +5")
+	end
+
+	if input.KeyCode == CONFIG.resetKey then
+		forwardSlider.set(CONFIG.forwardDefault)
+		addLog("Reset speed")
+	end
+
+	if input.KeyCode == CONFIG.waypointSetKey then
+		setWaypoint()
+	end
+
+	if input.KeyCode == CONFIG.waypointTeleportKey then
+		teleportWaypoint()
+	end
+
+	if input.KeyCode == Enum.KeyCode.F4 then
+		killScript()
+	end
+
+	if input.KeyCode == Enum.KeyCode.F5 then
+		devFrame.Visible = not devFrame.Visible
+		addLog("DevLog toggled")
+	end
+end)
