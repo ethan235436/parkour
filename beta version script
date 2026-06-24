@@ -704,13 +704,14 @@ title.Parent = top
 -- SORT BUTTON
 ------------------------------------------------
 local sortButton = Instance.new("TextButton")
-sortButton.Size = UDim2.new(0, 160, 0, 25)
-sortButton.Position = UDim2.new(1, -170, 0, 7)
+sortButton.Size = UDim2.new(0, 120, 0, 25)
+sortButton.Position = UDim2.new(1, -130, 0, 7)
 sortButton.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 sortButton.TextColor3 = Color3.fromRGB(200, 255, 255)
 sortButton.Font = Enum.Font.GothamBold
-sortButton.TextSize = 12
-sortButton.Text = "Sort: New → Old"
+sortButton.TextSize = 11
+sortButton.Text = "SORT ↓"
+sortButton.ZIndex = 5
 sortButton.Parent = top
 
 Instance.new("UICorner", sortButton).CornerRadius = UDim.new(0, 6)
