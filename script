@@ -620,6 +620,12 @@ UIS.InputBegan:Connect(function(input, processed)
 	-- X → TOGGLE MENU
 	if input.KeyCode == Enum.KeyCode.X then
 		frame.Visible = not frame.Visible
+
+if frame.Visible then
+	addLog("Coord TP menu opened")
+else
+	addLog("Coord TP menu closed")
+end
 	end
 end)
 ------------------------------------------------
