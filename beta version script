@@ -893,15 +893,18 @@ title.Parent = top
 -- CUSTOM HEADER (EDIT THIS)
 ------------------------------------------------
 local header = Instance.new("TextLabel")
-header.Size = UDim2.new(1, -20, 0, 30)
+header.Size = UDim2.new(1, -20, 0, 40)
 header.Position = UDim2.new(0, 10, 0, 40)
-header.BackgroundTransparency = 1
+header.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+header.BackgroundTransparency = 0.2
 header.Text = "YOUR CUSTOM HEADER HERE"
 header.Font = Enum.Font.GothamBold
 header.TextSize = 20
 header.TextColor3 = Color3.fromRGB(0, 255, 255)
 header.TextXAlignment = Enum.TextXAlignment.Left
 header.Parent = frame
+
+Instance.new("UICorner", header).CornerRadius = UDim.new(0, 6)
 
 ------------------------------------------------
 -- SCROLL AREA
