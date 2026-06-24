@@ -622,3 +622,52 @@ UIS.InputBegan:Connect(function(input, processed)
 		frame.Visible = not frame.Visible
 	end
 end)
+------------------------------------------------
+-- COORDS FILE LOGGER ADDON (PC LUA)
+------------------------------------------------
+
+local docs = os.getenv("USERPROFILE") .. "\\Documents"
+local folder = docs .. "\\coords"
+local filePath = folder .. "\\coords.txt"
+
+------------------------------------------------
+-- CREATE FOLDER (SAFE)
+------------------------------------------------
+pcall(function()
+	os.execute('mkdir "' .. folder .. '"')
+end)
+
+------------------------------------------------
+-- WRITE FUNCTION
+------------------------------------------------
+local function saveCoordsToFile(text)
+	local file = io.open(filePath, "a")
+	if not file then return end
+
+	file:write(text .. "\n")
+	file:close()
+end
+
+------------------------------------------------
+-- HOOK INTO YOUR BACKSLASH FUNCTION
+------------------------------------------------
+local function logCurrentCoordsToFile()
+	local root = getRoot()
+	if not root then return end
+
+	local pos = root.Position
+	local text = string.format("X: %.1f | Y: %.1f | Z: %.1f", pos.X, pos.Y, pos.Z)
+
+	saveCoordsToFile(text)
+end
+
+------------------------------------------------
+-- INPUT HOOK (BACKSLASH)
+------------------------------------------------
+UIS.InputBegan:Connect(function(input, processed)
+	if processed or scriptKilled then return end
+
+	if input.KeyCode == Enum.KeyCode.BackSlash then
+		logCurrentCoordsToFile()
+	end
+end)
