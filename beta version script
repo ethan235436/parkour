@@ -939,7 +939,7 @@ textLabel.Parent = scroll
 local icon = Instance.new("ImageLabel")
 icon.Size = UDim2.new(1, -10, 0, 150)
 icon.BackgroundTransparency = 1
-icon.Image = "rbxassetid://8508980536"
+icon.Image = "rbxassetid://106401331036482"
 icon.ScaleType = Enum.ScaleType.Fit
 icon.Parent = scroll
 
