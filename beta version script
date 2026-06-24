@@ -986,7 +986,7 @@ local player = Players.LocalPlayer
 -- CONFIG
 ------------------------------------------------
 local PLAYLIST = {
-	"rbxassetid://1843529633",
+	"rbxassetid://73329981655112",
 	"rbxassetid://9118823101",
 	"rbxassetid://1837635066"
 }
