@@ -836,26 +836,23 @@ end)
 local UIS = game:GetService("UserInputService")
 local playerGui = player:WaitForChild("PlayerGui")
 
--- CONFIG (EDIT THIS)
+-- EDIT THIS
 local CHANGELOG_TEXT = [[
-v1.0 - Initial release
+v1.0 - Initial Release
 - Launch system added
-- Dev log system added
-- Coord tools added
+- DevLog system added
 
-v1.1 - UI Update
-- Improved menu styling
-- Added smoother dragging
-- Fixed teleport bugs
+v1.1 - UI Improvements
+- Better menu styling
+- Fixed bugs
 
-v1.2 - QoL
-- Added scroll support
-- Improved performance
-- Minor bug fixes
+v1.2 - QoL Update
+- Scroll support added
+- Stability improvements
 ]]
 
 ------------------------------------------------
--- UI SETUP
+-- GUI
 ------------------------------------------------
 local changelogGui = Instance.new("ScreenGui")
 changelogGui.Name = "ChangelogUI"
@@ -863,8 +860,8 @@ changelogGui.ResetOnSpawn = false
 changelogGui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 450, 0, 320)
-frame.Position = UDim2.new(0.5, -225, 0.5, -160)
+frame.Size = UDim2.new(0, 480, 0, 340)
+frame.Position = UDim2.new(0.5, -240, 0.5, -170)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 frame.BackgroundTransparency = 0.25
 frame.Visible = false
@@ -893,11 +890,25 @@ title.TextColor3 = Color3.fromRGB(0, 255, 255)
 title.Parent = top
 
 ------------------------------------------------
+-- CUSTOM HEADER (EDIT THIS)
+------------------------------------------------
+local header = Instance.new("TextLabel")
+header.Size = UDim2.new(1, -20, 0, 30)
+header.Position = UDim2.new(0, 10, 0, 40)
+header.BackgroundTransparency = 1
+header.Text = "YOUR CUSTOM HEADER HERE"
+header.Font = Enum.Font.GothamBold
+header.TextSize = 20
+header.TextColor3 = Color3.fromRGB(0, 255, 255)
+header.TextXAlignment = Enum.TextXAlignment.Left
+header.Parent = frame
+
+------------------------------------------------
 -- SCROLL AREA
 ------------------------------------------------
 local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, -20, 1, -50)
-scroll.Position = UDim2.new(0, 10, 0, 45)
+scroll.Size = UDim2.new(1, -20, 1, -85)
+scroll.Position = UDim2.new(0, 10, 0, 75)
 scroll.BackgroundTransparency = 1
 scroll.ScrollBarThickness = 6
 scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -908,7 +919,7 @@ layout.Padding = UDim.new(0, 6)
 layout.Parent = scroll
 
 ------------------------------------------------
--- TEXT DISPLAY
+-- TEXT
 ------------------------------------------------
 local textLabel = Instance.new("TextLabel")
 textLabel.Size = UDim2.new(1, -10, 0, 0)
@@ -924,7 +935,7 @@ textLabel.Text = CHANGELOG_TEXT
 textLabel.Parent = scroll
 
 ------------------------------------------------
--- AUTO SIZE CANVAS
+-- AUTO RESIZE CANVAS
 ------------------------------------------------
 local function updateCanvas()
 	scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
@@ -934,7 +945,7 @@ layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
 updateCanvas()
 
 ------------------------------------------------
--- TOGGLE LOGIC
+-- TOGGLE (V KEY)
 ------------------------------------------------
 UIS.InputBegan:Connect(function(input, processed)
 	if processed then return end
