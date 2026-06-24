@@ -836,6 +836,10 @@ end)
 local UIS = game:GetService("UserInputService")
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- MEDIA CONFIG
+local CHANGELOG_IMAGE = "rbxassetid://93777551696874"
+local CHANGELOG_VIDEO = "blank"
+
 -- EDIT THIS
 local CHANGELOG_TEXT = [[
 v1.0 - Initial Release
