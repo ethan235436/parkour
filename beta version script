@@ -942,7 +942,7 @@ icon.Size = UDim2.new(1, -10, 0, 150)
 icon.BackgroundTransparency = 1
 icon.Image = "rbxassetid://93777551696874"
 icon.ScaleType = Enum.ScaleType.Fit
-icon.Parent = scroll
+icon.Position = UDim2.new(0, 10, 0, 10)
 
 ------------------------------------------------
 -- AUTO RESIZE CANVAS
