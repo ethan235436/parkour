@@ -623,51 +623,89 @@ UIS.InputBegan:Connect(function(input, processed)
 	end
 end)
 ------------------------------------------------
--- COORDS FILE LOGGER ADDON (PC LUA)
+-- COORDS LOGGER (WINDOWS LUA + TIMESTAMP FIXED)
 ------------------------------------------------
+
+local lfs = nil
+pcall(function()
+	lfs = require("lfs")
+end)
 
 local docs = os.getenv("USERPROFILE") .. "\\Documents"
 local folder = docs .. "\\coords"
 local filePath = folder .. "\\coords.txt"
 
 ------------------------------------------------
--- CREATE FOLDER (SAFE)
+-- CREATE FOLDER (ROBUST)
 ------------------------------------------------
-pcall(function()
-	os.execute('mkdir "' .. folder .. '"')
-end)
+local function createFolder(path)
+	-- Try LuaFileSystem first
+	if lfs and lfs.mkdir then
+		pcall(function()
+			lfs.mkdir(path)
+		end)
+	end
+
+	-- Fallback to OS command
+	pcall(function()
+		os.execute('mkdir "' .. path .. '"')
+	end)
+end
+
+createFolder(folder)
 
 ------------------------------------------------
--- WRITE FUNCTION
+-- GET TIME STRING
 ------------------------------------------------
-local function saveCoordsToFile(text)
-	local file = io.open(filePath, "a")
-	if not file then return end
+local function getTimestamp()
+	return os.date("[%Y-%m-%d %H:%M:%S]")
+end
+
+------------------------------------------------
+-- WRITE TO FILE
+------------------------------------------------
+local function writeLine(text)
+	local file = io.open(filePath, "a+")
+	if not file then
+		print("❌ Failed to open file:", filePath)
+		return
+	end
 
 	file:write(text .. "\n")
 	file:close()
 end
 
 ------------------------------------------------
--- HOOK INTO YOUR BACKSLASH FUNCTION
+-- SAVE COORDS
 ------------------------------------------------
-local function logCurrentCoordsToFile()
+local function saveCoords()
 	local root = getRoot()
-	if not root then return end
+	if not root then
+		print("❌ No root found")
+		return
+	end
 
 	local pos = root.Position
-	local text = string.format("X: %.1f | Y: %.1f | Z: %.1f", pos.X, pos.Y, pos.Z)
 
-	saveCoordsToFile(text)
+	local line = string.format(
+		"%s X: %.1f | Y: %.1f | Z: %.1f",
+		getTimestamp(),
+		pos.X,
+		pos.Y,
+		pos.Z
+	)
+
+	writeLine(line)
+	print("💾 Saved:", line)
 end
 
 ------------------------------------------------
--- INPUT HOOK (BACKSLASH)
+-- INPUT HOOK
 ------------------------------------------------
 UIS.InputBegan:Connect(function(input, processed)
 	if processed or scriptKilled then return end
 
 	if input.KeyCode == Enum.KeyCode.BackSlash then
-		logCurrentCoordsToFile()
+		saveCoords()
 	end
 end)
