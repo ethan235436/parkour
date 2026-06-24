@@ -793,6 +793,25 @@ for _, entry in ipairs(list) do
 	btn.MouseButton1Click:Connect(function()
 		teleportTo(entry.pos)
 	end)
+local copyBtn = Instance.new("TextButton")
+copyBtn.Name = "CopyButton"
+copyBtn.Size = UDim2.new(0, 55, 1, 0)
+copyBtn.AnchorPoint = Vector2.new(1, 0)
+copyBtn.Position = UDim2.new(1, 0, 0, 0)
+copyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+copyBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
+copyBtn.Font = Enum.Font.GothamBold
+copyBtn.TextSize = 11
+copyBtn.Text = "COPY"
+copyBtn.ZIndex = 100
+copyBtn.Parent = btn
+
+copyBtn.MouseButton1Click:Connect(function()
+	pcall(function()
+		setclipboard(entry.text)
+	end)
+	addLog("Copied coords")
+end)
 
 	-- COPY BUTTON (OVERLAY RIGHT SIDE)
 	local copyBtn = Instance.new("TextButton")
