@@ -925,7 +925,8 @@ layout.Parent = scroll
 -- TEXT
 ------------------------------------------------
 local textLabel = Instance.new("TextLabel")
-textLabel.Size = UDim2.new(1, -10, 0, 0)
+textLabel.Size = UDim2.new(1, -170, 0, 0)
+textLabel.Position = UDim2.new(0, 160, 0, 0)
 textLabel.BackgroundTransparency = 1
 textLabel.TextXAlignment = Enum.TextXAlignment.Left
 textLabel.TextYAlignment = Enum.TextYAlignment.Top
