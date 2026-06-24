@@ -461,3 +461,164 @@ task.spawn(function()
 		end
 	end
 end)
+------------------------------------------------
+-- COORDINATE TOOL ADDON (FINAL FIXED VERSION)
+------------------------------------------------
+
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+
+------------------------------------------------
+-- SAFE CLIPBOARD COPY
+------------------------------------------------
+local function copyToClipboard(text)
+	pcall(function()
+		setclipboard(text)
+	end)
+end
+
+------------------------------------------------
+-- COORD DISPLAY POPUP
+------------------------------------------------
+local coordGui = Instance.new("ScreenGui")
+coordGui.Name = "CoordPopup"
+coordGui.ResetOnSpawn = false
+coordGui.Parent = player:WaitForChild("PlayerGui")
+
+local coordLabel = Instance.new("TextLabel")
+coordLabel.Size = UDim2.new(0, 400, 0, 50)
+coordLabel.Position = UDim2.new(0.5, -200, 0.2, 0)
+coordLabel.BackgroundTransparency = 0.3
+coordLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+coordLabel.TextColor3 = Color3.fromRGB(120, 220, 255)
+coordLabel.Font = Enum.Font.GothamBold
+coordLabel.TextSize = 18
+coordLabel.Visible = false
+coordLabel.Parent = coordGui
+
+Instance.new("UICorner", coordLabel).CornerRadius = UDim.new(0, 8)
+
+local function flashCoords()
+	local char = player.Character
+	if not char then return end
+
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	local pos = root.Position
+
+	-- YOUR FORMAT (important)
+	local text = string.format("X: %.1f | Y: %.1f | Z: %.1f", pos.X, pos.Y, pos.Z)
+
+	copyToClipboard(text)
+
+	coordLabel.Text = "Copied: " .. text
+	coordLabel.Visible = true
+	coordLabel.BackgroundTransparency = 0.3
+	coordLabel.TextTransparency = 0
+
+	local fadeOut = TweenService:Create(
+		coordLabel,
+		TweenInfo.new(5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{TextTransparency = 1, BackgroundTransparency = 1}
+	)
+
+	task.delay(5, function()
+		fadeOut:Play()
+		fadeOut.Completed:Wait()
+		coordLabel.Visible = false
+	end)
+end
+
+------------------------------------------------
+-- TELEPORT UI
+------------------------------------------------
+local tpGui = Instance.new("ScreenGui")
+tpGui.Name = "CoordTP"
+tpGui.ResetOnSpawn = false
+tpGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 160)
+frame.Position = UDim2.new(0.5, -150, 0.5, -80)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+frame.Visible = false
+frame.Parent = tpGui
+frame.BackgroundTransparency = 0.5
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+local box = Instance.new("TextBox")
+box.Size = UDim2.new(0.9, 0, 0, 40)
+box.Position = UDim2.new(0.05, 0, 0.2, 0)
+box.PlaceholderText = "Paste coords here"
+box.Text = ""
+box.TextColor3 = Color3.fromRGB(255,255,255)
+box.BackgroundColor3 = Color3.fromRGB(40,40,55)
+box.Parent = frame
+
+Instance.new("UICorner", box)
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0.9, 0, 0, 40)
+button.Position = UDim2.new(0.05, 0, 0.6, 0)
+button.Text = "Teleport"
+button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+button.TextColor3 = Color3.fromRGB(0,0,0)
+button.Parent = frame
+
+Instance.new("UICorner", button)
+
+------------------------------------------------
+-- FIXED TELEPORT PARSER (SUPPORTS YOUR FORMAT)
+------------------------------------------------
+local function teleportToCoords()
+	local char = player.Character
+	if not char then return end
+
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	local text = box.Text
+
+	local x, y, z
+
+	-- FORMAT 1: YOUR CLIPBOARD FORMAT
+	x = string.match(text, "X:%s*([%-%d%.]+)")
+	y = string.match(text, "Y:%s*([%-%d%.]+)")
+	z = string.match(text, "Z:%s*([%-%d%.]+)")
+
+	-- FORMAT 2: fallback comma format
+	if not x or not y or not z then
+		x, y, z = string.match(text, "([%-%d%.]+)%s*,%s*([%-%d%.]+)%s*,%s*([%-%d%.]+)")
+	end
+
+	if not x or not y or not z then
+		addLog("Invalid coords format")
+		return
+	end
+
+	local pos = Vector3.new(tonumber(x), tonumber(y), tonumber(z))
+	root.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
+
+	addLog("Teleported to coords")
+end
+
+button.MouseButton1Click:Connect(teleportToCoords)
+
+------------------------------------------------
+-- INPUTS
+------------------------------------------------
+UIS.InputBegan:Connect(function(input, processed)
+	if processed or scriptKilled then return end
+
+	-- BACKSLASH → COPY COORDS
+	if input.KeyCode == Enum.KeyCode.BackSlash then
+		flashCoords()
+	end
+
+	-- X → TOGGLE MENU
+	if input.KeyCode == Enum.KeyCode.X then
+		frame.Visible = not frame.Visible
+	end
+end)
