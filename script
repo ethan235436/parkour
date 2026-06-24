@@ -829,3 +829,145 @@ UIS.InputBegan:Connect(function(input, processed)
 		end
 	end
 end)
+------------------------------------------------
+-- CHANGELOG MENU (TOGGLE WITH V)
+------------------------------------------------
+
+local UIS = game:GetService("UserInputService")
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- MEDIA CONFIG
+local CHANGELOG_IMAGE = "rbxassetid://93777551696874"
+local CHANGELOG_VIDEO = "blank"
+
+-- EDIT THIS
+local CHANGELOG_TEXT = [[
+- DevLog system added
+- Better menu styling
+- Fixed bugs
+- Scroll support added
+- Stability improvements
+- Changelog system
+- Coord System added
+]]
+
+------------------------------------------------
+-- GUI
+------------------------------------------------
+local changelogGui = Instance.new("ScreenGui")
+changelogGui.Name = "ChangelogUI"
+changelogGui.ResetOnSpawn = false
+changelogGui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 480, 0, 340)
+frame.Position = UDim2.new(0.5, -240, 0.5, -170)
+frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+frame.BackgroundTransparency = 0.25
+frame.Visible = false
+frame.Parent = changelogGui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+------------------------------------------------
+-- TOP BAR
+------------------------------------------------
+local top = Instance.new("Frame")
+top.Size = UDim2.new(1, 0, 0, 35)
+top.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+top.BorderSizePixel = 0
+top.Parent = frame
+
+Instance.new("UICorner", top).CornerRadius = UDim.new(0, 10)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 1, 0)
+title.BackgroundTransparency = 1
+title.Text = "CHANGELOG"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(0, 255, 255)
+title.Parent = top
+
+------------------------------------------------
+-- CUSTOM HEADER (EDIT THIS)
+------------------------------------------------
+local header = Instance.new("TextLabel")
+header.Size = UDim2.new(1, -20, 0, 40)
+header.Position = UDim2.new(0, 10, 0, 40)
+header.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+header.BackgroundTransparency = 0.2
+header.Text = "v1.2 - QoL Update"
+header.Font = Enum.Font.GothamBold
+header.TextSize = 20
+header.TextColor3 = Color3.fromRGB(0, 255, 255)
+header.TextXAlignment = Enum.TextXAlignment.Left
+header.Parent = frame
+
+Instance.new("UICorner", header).CornerRadius = UDim.new(0, 6)
+
+------------------------------------------------
+-- SCROLL AREA
+------------------------------------------------
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -20, 1, -85)
+scroll.Position = UDim2.new(0, 10, 0, 75)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 6
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 6)
+layout.Parent = scroll
+
+------------------------------------------------
+-- TEXT
+------------------------------------------------
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, -170, 0, 0)
+textLabel.Size = UDim2.new(1, -20, 0, 0)
+textLabel.AutomaticSize = Enum.AutomaticSize.Y
+textLabel.Parent = scroll
+textLabel.BackgroundTransparency = 1
+textLabel.TextXAlignment = Enum.TextXAlignment.Left
+textLabel.TextYAlignment = Enum.TextYAlignment.Top
+textLabel.Font = Enum.Font.Code
+textLabel.TextSize = 14
+textLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+textLabel.TextWrapped = true
+textLabel.AutomaticSize = Enum.AutomaticSize.Y
+textLabel.Text = CHANGELOG_TEXT
+textLabel.Parent = scroll
+
+------------------------------------------------
+-- AUTO RESIZE CANVAS
+------------------------------------------------
+local function updateCanvas()
+	task.defer(function()
+		scroll.CanvasSize = UDim2.new(
+			0,
+			0,
+			0,
+			layout.AbsoluteContentSize.Y + 20
+		)
+	end)
+end
+
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+
+-- extra safety refresh (important for image + AutomaticSize timing)
+task.defer(updateCanvas)
+task.wait(0.1)
+updateCanvas()
+
+------------------------------------------------
+-- TOGGLE (V KEY)
+------------------------------------------------
+UIS.InputBegan:Connect(function(input, processed)
+	if processed then return end
+
+	if input.KeyCode == Enum.KeyCode.V then
+		frame.Visible = not frame.Visible
+	end
+end)
