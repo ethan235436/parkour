@@ -544,6 +544,7 @@ frame.Position = UDim2.new(0.5, -150, 0.5, -80)
 frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 frame.Visible = false
 frame.Parent = tpGui
+frame.BackgroundTransparency = 0.5
 
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
