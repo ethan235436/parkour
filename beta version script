@@ -777,15 +777,43 @@ local function refreshHistory()
 		end)
 	end
 
-	for _, entry in ipairs(list) do
-		local btn = Instance.new("TextButton")
-		btn.Size = UDim2.new(1, -10, 0, 40)
-		btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-		btn.TextColor3 = Color3.fromRGB(200, 200, 255)
-		btn.Font = Enum.Font.Gotham
-		btn.TextSize = 14
-		btn.Text = entry.text
-		btn.Parent = scroll
+for _, entry in ipairs(list) do
+	-- MAIN TELEPORT BUTTON
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 40)
+	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	btn.TextColor3 = Color3.fromRGB(200, 200, 255)
+	btn.Font = Enum.Font.Gotham
+	btn.TextSize = 14
+	btn.Text = entry.text
+	btn.Parent = scroll
+
+	btn.ZIndex = 1
+
+	btn.MouseButton1Click:Connect(function()
+		teleportTo(entry.pos)
+	end)
+
+	-- COPY BUTTON (OVERLAY RIGHT SIDE)
+	local copyBtn = Instance.new("TextButton")
+	copyBtn.Size = UDim2.new(0, 50, 1, 0)
+	copyBtn.Position = UDim2.new(1, -50, 0, 0)
+	copyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+	copyBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
+	copyBtn.Font = Enum.Font.GothamBold
+	copyBtn.TextSize = 11
+	copyBtn.Text = "COPY"
+	copyBtn.Parent = btn
+
+	copyBtn.ZIndex = 2
+
+	copyBtn.MouseButton1Click:Connect(function()
+		pcall(function()
+			setclipboard(entry.text)
+		end)
+		addLog("Copied coords")
+	end)
+end
 
 		btn.MouseButton1Click:Connect(function()
 			teleportTo(entry.pos)
