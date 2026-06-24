@@ -623,13 +623,14 @@ UIS.InputBegan:Connect(function(input, processed)
 	end
 end)
 ------------------------------------------------
--- CLIENT-SIDE COORD HISTORY SYSTEM
+-- CLIENT COORD HISTORY + SORT ADDON
 ------------------------------------------------
 
 local savedCoords = {}
+local sortNewToOld = true
 
 ------------------------------------------------
--- SAVE COORD FUNCTION
+-- SAVE COORD
 ------------------------------------------------
 local function addCoord()
 	local root = getRoot()
@@ -639,7 +640,8 @@ local function addCoord()
 
 	local entry = {
 		text = string.format("X: %.1f | Y: %.1f | Z: %.1f", pos.X, pos.Y, pos.Z),
-		pos = pos
+		pos = pos,
+		index = #savedCoords + 1
 	}
 
 	table.insert(savedCoords, entry)
@@ -647,7 +649,7 @@ local function addCoord()
 end
 
 ------------------------------------------------
--- TELEPORT TO ENTRY
+-- TELEPORT
 ------------------------------------------------
 local function teleportTo(pos)
 	local char = player.Character
@@ -669,7 +671,7 @@ historyGui.ResetOnSpawn = false
 historyGui.Parent = player:WaitForChild("PlayerGui")
 
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 500, 0, 400) -- BIGGER than devlog
+main.Size = UDim2.new(0, 500, 0, 400)
 main.Position = UDim2.new(0.5, -250, 0.5, -200)
 main.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
 main.BackgroundTransparency = 0.3
@@ -699,6 +701,21 @@ title.TextColor3 = Color3.fromRGB(0, 255, 255)
 title.Parent = top
 
 ------------------------------------------------
+-- SORT BUTTON
+------------------------------------------------
+local sortButton = Instance.new("TextButton")
+sortButton.Size = UDim2.new(0, 160, 0, 25)
+sortButton.Position = UDim2.new(1, -170, 0, 7)
+sortButton.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+sortButton.TextColor3 = Color3.fromRGB(200, 255, 255)
+sortButton.Font = Enum.Font.GothamBold
+sortButton.TextSize = 12
+sortButton.Text = "Sort: New → Old"
+sortButton.Parent = top
+
+Instance.new("UICorner", sortButton).CornerRadius = UDim.new(0, 6)
+
+------------------------------------------------
 -- SCROLL FRAME
 ------------------------------------------------
 local scroll = Instance.new("ScrollingFrame")
@@ -714,7 +731,21 @@ layout.Parent = scroll
 layout.Padding = UDim.new(0, 6)
 
 ------------------------------------------------
--- REFRESH UI
+-- TELEPORT FUNCTION
+------------------------------------------------
+local function teleportTo(pos)
+	local char = player.Character
+	if not char then return end
+
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	root.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
+	addLog("Teleported from history")
+end
+
+------------------------------------------------
+-- REFRESH UI (SORTABLE)
 ------------------------------------------------
 local function refreshHistory()
 	for _, v in ipairs(scroll:GetChildren()) do
@@ -723,14 +754,30 @@ local function refreshHistory()
 		end
 	end
 
-	for i, entry in ipairs(savedCoords) do
+	local list = {}
+
+	for _, entry in ipairs(savedCoords) do
+		table.insert(list, entry)
+	end
+
+	if sortNewToOld then
+		table.sort(list, function(a, b)
+			return a.index > b.index
+		end)
+	else
+		table.sort(list, function(a, b)
+			return a.index < b.index
+		end)
+	end
+
+	for _, entry in ipairs(list) do
 		local btn = Instance.new("TextButton")
 		btn.Size = UDim2.new(1, -10, 0, 40)
 		btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 		btn.TextColor3 = Color3.fromRGB(200, 200, 255)
 		btn.Font = Enum.Font.Gotham
 		btn.TextSize = 14
-		btn.Text = tostring(i) .. " - " .. entry.text
+		btn.Text = entry.text
 		btn.Parent = scroll
 
 		btn.MouseButton1Click:Connect(function()
@@ -743,17 +790,30 @@ local function refreshHistory()
 end
 
 ------------------------------------------------
+-- SORT BUTTON TOGGLE
+------------------------------------------------
+sortButton.MouseButton1Click:Connect(function()
+	sortNewToOld = not sortNewToOld
+
+	if sortNewToOld then
+		sortButton.Text = "Sort: New → Old"
+	else
+		sortButton.Text = "Sort: Old → New"
+	end
+
+	refreshHistory()
+end)
+
+------------------------------------------------
 -- INPUT CONTROLS
 ------------------------------------------------
 UIS.InputBegan:Connect(function(input, processed)
 	if processed or scriptKilled then return end
 
-	-- BACKSLASH = SAVE COORD
 	if input.KeyCode == Enum.KeyCode.BackSlash then
 		addCoord()
 	end
 
-	-- P = TOGGLE MENU
 	if input.KeyCode == Enum.KeyCode.P then
 		main.Visible = not main.Visible
 
