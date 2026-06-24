@@ -623,89 +623,142 @@ UIS.InputBegan:Connect(function(input, processed)
 	end
 end)
 ------------------------------------------------
--- COORDS LOGGER (WINDOWS LUA + TIMESTAMP FIXED)
+-- CLIENT-SIDE COORD HISTORY SYSTEM
 ------------------------------------------------
 
-local lfs = nil
-pcall(function()
-	lfs = require("lfs")
-end)
-
-local docs = os.getenv("USERPROFILE") .. "\\Documents"
-local folder = docs .. "\\coords"
-local filePath = folder .. "\\coords.txt"
+local savedCoords = {}
 
 ------------------------------------------------
--- CREATE FOLDER (ROBUST)
+-- SAVE COORD FUNCTION
 ------------------------------------------------
-local function createFolder(path)
-	-- Try LuaFileSystem first
-	if lfs and lfs.mkdir then
-		pcall(function()
-			lfs.mkdir(path)
-		end)
-	end
-
-	-- Fallback to OS command
-	pcall(function()
-		os.execute('mkdir "' .. path .. '"')
-	end)
-end
-
-createFolder(folder)
-
-------------------------------------------------
--- GET TIME STRING
-------------------------------------------------
-local function getTimestamp()
-	return os.date("[%Y-%m-%d %H:%M:%S]")
-end
-
-------------------------------------------------
--- WRITE TO FILE
-------------------------------------------------
-local function writeLine(text)
-	local file = io.open(filePath, "a+")
-	if not file then
-		print("❌ Failed to open file:", filePath)
-		return
-	end
-
-	file:write(text .. "\n")
-	file:close()
-end
-
-------------------------------------------------
--- SAVE COORDS
-------------------------------------------------
-local function saveCoords()
+local function addCoord()
 	local root = getRoot()
-	if not root then
-		print("❌ No root found")
-		return
-	end
+	if not root then return end
 
 	local pos = root.Position
 
-	local line = string.format(
-		"%s X: %.1f | Y: %.1f | Z: %.1f",
-		getTimestamp(),
-		pos.X,
-		pos.Y,
-		pos.Z
-	)
+	local entry = {
+		text = string.format("X: %.1f | Y: %.1f | Z: %.1f", pos.X, pos.Y, pos.Z),
+		pos = pos
+	}
 
-	writeLine(line)
-	print("💾 Saved:", line)
+	table.insert(savedCoords, entry)
+	addLog("Coord saved")
 end
 
 ------------------------------------------------
--- INPUT HOOK
+-- TELEPORT TO ENTRY
+------------------------------------------------
+local function teleportTo(pos)
+	local char = player.Character
+	if not char then return end
+
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	root.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
+	addLog("Teleported from history")
+end
+
+------------------------------------------------
+-- UI SETUP
+------------------------------------------------
+local historyGui = Instance.new("ScreenGui")
+historyGui.Name = "CoordHistory"
+historyGui.ResetOnSpawn = false
+historyGui.Parent = player:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 500, 0, 400) -- BIGGER than devlog
+main.Position = UDim2.new(0.5, -250, 0.5, -200)
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+main.BackgroundTransparency = 0.3
+main.Visible = false
+main.Parent = historyGui
+
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
+
+------------------------------------------------
+-- TOP BAR
+------------------------------------------------
+local top = Instance.new("Frame")
+top.Size = UDim2.new(1, 0, 0, 40)
+top.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+top.BorderSizePixel = 0
+top.Parent = main
+
+Instance.new("UICorner", top).CornerRadius = UDim.new(0, 10)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 1, 0)
+title.BackgroundTransparency = 1
+title.Text = "COORD HISTORY"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(0, 255, 255)
+title.Parent = top
+
+------------------------------------------------
+-- SCROLL FRAME
+------------------------------------------------
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -20, 1, -60)
+scroll.Position = UDim2.new(0, 10, 0, 50)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.ScrollBarThickness = 6
+scroll.BackgroundTransparency = 1
+scroll.Parent = main
+
+local layout = Instance.new("UIListLayout")
+layout.Parent = scroll
+layout.Padding = UDim.new(0, 6)
+
+------------------------------------------------
+-- REFRESH UI
+------------------------------------------------
+local function refreshHistory()
+	for _, v in ipairs(scroll:GetChildren()) do
+		if v:IsA("TextButton") then
+			v:Destroy()
+		end
+	end
+
+	for i, entry in ipairs(savedCoords) do
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, -10, 0, 40)
+		btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+		btn.TextColor3 = Color3.fromRGB(200, 200, 255)
+		btn.Font = Enum.Font.Gotham
+		btn.TextSize = 14
+		btn.Text = tostring(i) .. " - " .. entry.text
+		btn.Parent = scroll
+
+		btn.MouseButton1Click:Connect(function()
+			teleportTo(entry.pos)
+		end)
+	end
+
+	task.wait()
+	scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+end
+
+------------------------------------------------
+-- INPUT CONTROLS
 ------------------------------------------------
 UIS.InputBegan:Connect(function(input, processed)
 	if processed or scriptKilled then return end
 
+	-- BACKSLASH = SAVE COORD
 	if input.KeyCode == Enum.KeyCode.BackSlash then
-		saveCoords()
+		addCoord()
+	end
+
+	-- P = TOGGLE MENU
+	if input.KeyCode == Enum.KeyCode.P then
+		main.Visible = not main.Visible
+
+		if main.Visible then
+			refreshHistory()
+		end
 	end
 end)
