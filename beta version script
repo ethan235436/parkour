@@ -66,7 +66,7 @@ Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 10)
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "LAUNCH SYSTEM"
+title.Text = "ETHANS LAUNCH SYSTEM"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.TextColor3 = Color3.fromRGB(0, 255, 255)
@@ -777,62 +777,15 @@ local function refreshHistory()
 		end)
 	end
 
-for _, entry in ipairs(list) do
-	-- MAIN TELEPORT BUTTON
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, 0, 0, 40)
-	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-	btn.TextColor3 = Color3.fromRGB(200, 200, 255)
-	btn.Font = Enum.Font.Gotham
-	btn.TextSize = 14
-	btn.Text = entry.text
-	btn.Parent = scroll
-
-	btn.ZIndex = 1
-
-	btn.MouseButton1Click:Connect(function()
-		teleportTo(entry.pos)
-	end)
-local copyBtn = Instance.new("TextButton")
-copyBtn.Name = "CopyButton"
-copyBtn.Size = UDim2.new(0, 55, 1, 0)
-copyBtn.AnchorPoint = Vector2.new(1, 0)
-copyBtn.Position = UDim2.new(1, 0, 0, 0)
-copyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-copyBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
-copyBtn.Font = Enum.Font.GothamBold
-copyBtn.TextSize = 11
-copyBtn.Text = "COPY"
-copyBtn.ZIndex = 100
-copyBtn.Parent = btn
-
-copyBtn.MouseButton1Click:Connect(function()
-	pcall(function()
-		setclipboard(entry.text)
-	end)
-	addLog("Copied coords")
-end)
-
-	-- COPY BUTTON (OVERLAY RIGHT SIDE)
-	local copyBtn = Instance.new("TextButton")
-	copyBtn.Size = UDim2.new(0, 50, 1, 0)
-	copyBtn.Position = UDim2.new(1, -50, 0, 0)
-	copyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-	copyBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
-	copyBtn.Font = Enum.Font.GothamBold
-	copyBtn.TextSize = 11
-	copyBtn.Text = "COPY"
-	copyBtn.Parent = btn
-
-	copyBtn.ZIndex = 2
-
-	copyBtn.MouseButton1Click:Connect(function()
-		pcall(function()
-			setclipboard(entry.text)
-		end)
-		addLog("Copied coords")
-	end)
-end
+	for _, entry in ipairs(list) do
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, -10, 0, 40)
+		btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+		btn.TextColor3 = Color3.fromRGB(200, 200, 255)
+		btn.Font = Enum.Font.Gotham
+		btn.TextSize = 14
+		btn.Text = entry.text
+		btn.Parent = scroll
 
 		btn.MouseButton1Click:Connect(function()
 			teleportTo(entry.pos)
