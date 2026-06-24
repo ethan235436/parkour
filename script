@@ -195,7 +195,7 @@ info.TextColor3 = Color3.fromRGB(0, 200, 200)
 info.Font = Enum.Font.Gotham
 info.TextSize = 13
 info.Text =
-	"R = +5 Speed\nC = Reset\nF = Launch\nF2 = Set WP\nF3 = TP WP\nF4 = Kill\nF5 = DevLog\nALT = Menu"
+	"R = +5 Speed\nC = Reset\nF = Launch\nF2 = Set WP\nF3 = TP WP\nF4 = Kill\nF5 = DevLog\nALT = Menu\nHold Alt = Click TP"
 info.Parent = frame
 
 ------------------------------------------------
@@ -400,5 +400,64 @@ connections.main = UIS.InputBegan:Connect(function(input, processed)
 	if input.KeyCode == Enum.KeyCode.F5 then
 		devFrame.Visible = not devFrame.Visible
 		addLog("DevLog toggled")
+	end
+end)
+------------------------------------------------
+-- HOLD ALT TELEPORT SYSTEM (ADD-ON)
+------------------------------------------------
+
+local UserInputService = game:GetService("UserInputService")
+local camera = workspace.CurrentCamera
+
+local altHeld = false
+
+-- track Alt state
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed or scriptKilled then return end
+
+	if input.KeyCode == Enum.KeyCode.LeftAlt then
+		altHeld = true
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.LeftAlt then
+		altHeld = false
+	end
+end)
+
+-- click teleport while holding Alt
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed or scriptKilled then return end
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and altHeld then
+		local root = getRoot()
+		if not root then return end
+
+		local mousePos = UserInputService:GetMouseLocation()
+		local ray = camera:ViewportPointToRay(mousePos.X, mousePos.Y)
+
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Blacklist
+		params.FilterDescendantsInstances = {player.Character}
+
+		local result = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
+
+		if result then
+			root.CFrame = CFrame.new(result.Position + Vector3.new(0, 3, 0))
+			addLog("Alt teleport")
+		end
+	end
+end)
+
+-- prevent Alt from toggling menu while held
+task.spawn(function()
+	while true do
+		task.wait(0.1)
+		if altHeld and menuOpen then
+			-- undo unwanted toggle caused by original LeftAlt binding
+			menuOpen = true
+			frame.Visible = true
+		end
 	end
 end)
