@@ -829,3 +829,117 @@ UIS.InputBegan:Connect(function(input, processed)
 		end
 	end
 end)
+------------------------------------------------
+-- CHANGELOG MENU (TOGGLE WITH V)
+------------------------------------------------
+
+local UIS = game:GetService("UserInputService")
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- CONFIG (EDIT THIS)
+local CHANGELOG_TEXT = [[
+v1.0 - Initial release
+- Launch system added
+- Dev log system added
+- Coord tools added
+
+v1.1 - UI Update
+- Improved menu styling
+- Added smoother dragging
+- Fixed teleport bugs
+
+v1.2 - QoL
+- Added scroll support
+- Improved performance
+- Minor bug fixes
+]]
+
+------------------------------------------------
+-- UI SETUP
+------------------------------------------------
+local changelogGui = Instance.new("ScreenGui")
+changelogGui.Name = "ChangelogUI"
+changelogGui.ResetOnSpawn = false
+changelogGui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 450, 0, 320)
+frame.Position = UDim2.new(0.5, -225, 0.5, -160)
+frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+frame.BackgroundTransparency = 0.25
+frame.Visible = false
+frame.Parent = changelogGui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+------------------------------------------------
+-- TOP BAR
+------------------------------------------------
+local top = Instance.new("Frame")
+top.Size = UDim2.new(1, 0, 0, 35)
+top.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+top.BorderSizePixel = 0
+top.Parent = frame
+
+Instance.new("UICorner", top).CornerRadius = UDim.new(0, 10)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 1, 0)
+title.BackgroundTransparency = 1
+title.Text = "CHANGELOG"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(0, 255, 255)
+title.Parent = top
+
+------------------------------------------------
+-- SCROLL AREA
+------------------------------------------------
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -20, 1, -50)
+scroll.Position = UDim2.new(0, 10, 0, 45)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 6
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 6)
+layout.Parent = scroll
+
+------------------------------------------------
+-- TEXT DISPLAY
+------------------------------------------------
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, -10, 0, 0)
+textLabel.BackgroundTransparency = 1
+textLabel.TextXAlignment = Enum.TextXAlignment.Left
+textLabel.TextYAlignment = Enum.TextYAlignment.Top
+textLabel.Font = Enum.Font.Code
+textLabel.TextSize = 14
+textLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+textLabel.TextWrapped = true
+textLabel.AutomaticSize = Enum.AutomaticSize.Y
+textLabel.Text = CHANGELOG_TEXT
+textLabel.Parent = scroll
+
+------------------------------------------------
+-- AUTO SIZE CANVAS
+------------------------------------------------
+local function updateCanvas()
+	scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+end
+
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+updateCanvas()
+
+------------------------------------------------
+-- TOGGLE LOGIC
+------------------------------------------------
+UIS.InputBegan:Connect(function(input, processed)
+	if processed then return end
+
+	if input.KeyCode == Enum.KeyCode.V then
+		frame.Visible = not frame.Visible
+	end
+end)
