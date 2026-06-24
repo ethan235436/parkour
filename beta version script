@@ -52746,7 +52746,7 @@ local MIDI_DATA = [[
 }
 ]]
 
-local BASE_SOUND = "rbxassetid://9118823101" -- tone/piano sound
+local BASE_SOUND = "rbxassetid://1843529633" -- tone/piano sound
 local PPQ = 480 -- standard MIDI ticks per beat (adjust if needed)
 local BPM = 120 -- fallback tempo
 
