@@ -639,7 +639,13 @@ local function addCoord()
 	local pos = root.Position
 
 	local entry = {
-		text = string.format("X: %.1f | Y: %.1f | Z: %.1f", pos.X, pos.Y, pos.Z),
+		text = string.format(
+			"[%s] X: %.1f | Y: %.1f | Z: %.1f",
+			os.date("%H:%M:%S"),
+			pos.X,
+			pos.Y,
+			pos.Z
+		),
 		pos = pos,
 		index = #savedCoords + 1
 	}
