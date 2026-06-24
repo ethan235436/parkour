@@ -824,6 +824,12 @@ UIS.InputBegan:Connect(function(input, processed)
 	if input.KeyCode == Enum.KeyCode.P then
 		main.Visible = not main.Visible
 
+if main.Visible then
+	addLog("History menu opened")
+	refreshHistory()
+else
+	addLog("History menu closed")
+end
 		if main.Visible then
 			refreshHistory()
 		end
