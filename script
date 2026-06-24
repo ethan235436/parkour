@@ -195,7 +195,7 @@ info.TextColor3 = Color3.fromRGB(0, 200, 200)
 info.Font = Enum.Font.Gotham
 info.TextSize = 13
 info.Text =
-	"R = +5 Speed\nC = Reset\nF = Launch\nF2 = Set WP\nF3 = TP WP\nF4 = Kill\nF5 = DevLog\nALT = Menu\nHold Alt = Click TP"
+	"R = +5 Speed\nC = Reset\nF = Launch\nF2 = Set WP\nF3 = TP WP\nF6 = Kill\nF5 = DevLog\nALT = Menu\nHold Alt = Click TP"
 info.Parent = frame
 
 ------------------------------------------------
@@ -393,7 +393,7 @@ connections.main = UIS.InputBegan:Connect(function(input, processed)
 		teleportWaypoint()
 	end
 
-	if input.KeyCode == Enum.KeyCode.F4 then
+	if input.KeyCode == Enum.KeyCode.F6 then
 		killScript()
 	end
 
