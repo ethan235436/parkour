@@ -842,17 +842,13 @@ local CHANGELOG_VIDEO = "blank"
 
 -- EDIT THIS
 local CHANGELOG_TEXT = [[
-v1.0 - Initial Release
-- Launch system added
 - DevLog system added
-
-v1.1 - UI Improvements
 - Better menu styling
 - Fixed bugs
-
-v1.2 - QoL Update
 - Scroll support added
 - Stability improvements
+- Changelog system
+- Coord System added
 ]]
 
 ------------------------------------------------
@@ -901,7 +897,7 @@ header.Size = UDim2.new(1, -20, 0, 40)
 header.Position = UDim2.new(0, 10, 0, 40)
 header.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 header.BackgroundTransparency = 0.2
-header.Text = "YOUR CUSTOM HEADER HERE"
+header.Text = "v1.2 - QoL Update"
 header.Font = Enum.Font.GothamBold
 header.TextSize = 20
 header.TextColor3 = Color3.fromRGB(0, 255, 255)
@@ -944,33 +940,6 @@ textLabel.AutomaticSize = Enum.AutomaticSize.Y
 textLabel.Text = CHANGELOG_TEXT
 textLabel.Parent = scroll
 
-------------------------------------------------
--- MEDIA (IMAGE / VIDEO - OPTIONAL, NO EMPTY SPACE)
-------------------------------------------------
-
-local function createMedia()
-
-	-- IMAGE
-	if CHANGELOG_IMAGE and CHANGELOG_IMAGE ~= "blank" and CHANGELOG_IMAGE ~= "" then
-		local icon = Instance.new("ImageLabel")
-		icon.Size = UDim2.new(1, -20, 0, 180)
-		icon.BackgroundTransparency = 1
-		icon.Image = CHANGELOG_IMAGE
-		icon.ScaleType = Enum.ScaleType.Fit
-		icon.Parent = scroll
-	end
-
-	-- VIDEO
-	if CHANGELOG_VIDEO and CHANGELOG_VIDEO ~= "blank" and CHANGELOG_VIDEO ~= "" then
-		local video = Instance.new("VideoFrame")
-		video.Size = UDim2.new(1, -20, 0, 180)
-		video.BackgroundTransparency = 1
-		video.Video = CHANGELOG_VIDEO
-		video.Looped = true
-		video.Volume = 1
-		video.Parent = scroll
-	end
-end
 ------------------------------------------------
 -- AUTO RESIZE CANVAS
 ------------------------------------------------
