@@ -947,10 +947,21 @@ icon.Parent = scroll
 -- AUTO RESIZE CANVAS
 ------------------------------------------------
 local function updateCanvas()
-	scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+	task.defer(function()
+		scroll.CanvasSize = UDim2.new(
+			0,
+			0,
+			0,
+			layout.AbsoluteContentSize.Y + 20
+		)
+	end)
 end
 
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+
+-- extra safety refresh (important for image + AutomaticSize timing)
+task.defer(updateCanvas)
+task.wait(0.1)
 updateCanvas()
 
 ------------------------------------------------
