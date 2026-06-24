@@ -975,3 +975,255 @@ UIS.InputBegan:Connect(function(input, processed)
 		frame.Visible = not frame.Visible
 	end
 end)
+--// Services
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+------------------------------------------------
+-- CONFIG
+------------------------------------------------
+local PLAYLIST = {
+	"rbxassetid://1843529633",
+	"rbxassetid://9118823101",
+	"rbxassetid://1837635066"
+}
+
+------------------------------------------------
+-- STATE
+------------------------------------------------
+local index = 1
+local playing = false
+local shuffle = false
+local repeatMode = "all" -- off / all / one
+
+------------------------------------------------
+-- SOUND
+------------------------------------------------
+local sound = Instance.new("Sound")
+sound.Volume = 0.5
+sound.Looped = false
+sound.Parent = workspace
+
+local function playSong(i)
+	index = i
+	sound.SoundId = PLAYLIST[index]
+	sound.TimePosition = 0
+	sound:Play()
+	playing = true
+end
+
+local function nextIndex()
+	if shuffle then
+		return math.random(1, #PLAYLIST)
+	end
+
+	if repeatMode == "one" then
+		return index
+	end
+
+	local n = index + 1
+	if n > #PLAYLIST then
+		return (repeatMode == "all") and 1 or index
+	end
+
+	return n
+end
+
+local function prevIndex()
+	if shuffle then
+		return math.random(1, #PLAYLIST)
+	end
+
+	local p = index - 1
+	if p < 1 then
+		return #PLAYLIST
+	end
+
+	return p
+end
+
+------------------------------------------------
+-- UI
+------------------------------------------------
+local gui = Instance.new("ScreenGui")
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 340, 0, 220)
+frame.Position = UDim2.new(0.5, -170, 0.5, -110)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,25)
+frame.BackgroundTransparency = 0.2
+frame.Visible = false
+frame.Parent = gui
+Instance.new("UICorner", frame)
+
+------------------------------------------------
+-- DRAG
+------------------------------------------------
+local dragging, dragStart, startPos
+
+frame.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = i.Position
+		startPos = frame.Position
+	end
+end)
+
+UIS.InputEnded:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+UIS.InputChanged:Connect(function(i)
+	if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+		local d = i.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + d.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + d.Y
+		)
+	end
+end)
+
+------------------------------------------------
+-- TITLE
+------------------------------------------------
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundTransparency = 1
+title.Text = "PLAYLIST"
+title.TextColor3 = Color3.fromRGB(0,255,255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.Parent = frame
+
+------------------------------------------------
+-- PROGRESS
+------------------------------------------------
+local bar = Instance.new("Frame")
+bar.Size = UDim2.new(0.9,0,0,8)
+bar.Position = UDim2.new(0.05,0,0.35,0)
+bar.BackgroundColor3 = Color3.fromRGB(40,40,50)
+bar.Parent = frame
+Instance.new("UICorner", bar)
+
+local fill = Instance.new("Frame")
+fill.Size = UDim2.new(0,0,1,0)
+fill.BackgroundColor3 = Color3.fromRGB(0,255,255)
+fill.Parent = bar
+Instance.new("UICorner", fill)
+
+RunService.RenderStepped:Connect(function()
+	if sound.IsPlaying and sound.TimeLength > 0 then
+		fill.Size = UDim2.new(sound.TimePosition / sound.TimeLength,0,1,0)
+	end
+end)
+
+------------------------------------------------
+-- VOLUME
+------------------------------------------------
+local volBar = Instance.new("Frame")
+volBar.Size = UDim2.new(0.9,0,0,6)
+volBar.Position = UDim2.new(0.05,0,0.48,0)
+volBar.BackgroundColor3 = Color3.fromRGB(40,40,50)
+volBar.Parent = frame
+Instance.new("UICorner", volBar)
+
+local volFill = Instance.new("Frame")
+volFill.Size = UDim2.new(sound.Volume,0,1,0)
+volFill.BackgroundColor3 = Color3.fromRGB(0,200,255)
+volFill.Parent = volBar
+Instance.new("UICorner", volFill)
+
+local function setVol(x)
+	local v = math.clamp(x,0,1)
+	sound.Volume = v
+	volFill.Size = UDim2.new(v,0,1,0)
+end
+
+volBar.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 then
+		setVol((i.Position.X - volBar.AbsolutePosition.X)/volBar.AbsoluteSize.X)
+	end
+end)
+
+------------------------------------------------
+-- BUTTONS
+------------------------------------------------
+local function button(txt, x, cb)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(0.28,0,0,35)
+	b.Position = UDim2.new(x,0,0.62,0)
+	b.Text = txt
+	b.BackgroundColor3 = Color3.fromRGB(35,35,50)
+	b.TextColor3 = Color3.fromRGB(200,255,255)
+	b.Parent = frame
+	Instance.new("UICorner", b)
+	b.MouseButton1Click:Connect(cb)
+end
+
+button("⏮",0.05,function() playSong(prevIndex()) end)
+button("⏯",0.36,function()
+	if playing then sound:Pause() else sound:Play() end
+	playing = not playing
+end)
+button("⏭",0.67,function() playSong(nextIndex()) end)
+
+------------------------------------------------
+-- SHUFFLE + REPEAT
+------------------------------------------------
+local shuffleBtn = Instance.new("TextButton")
+shuffleBtn.Size = UDim2.new(0.45,0,0,25)
+shuffleBtn.Position = UDim2.new(0.05,0,0.85,0)
+shuffleBtn.Text = "Shuffle: OFF"
+shuffleBtn.Parent = frame
+Instance.new("UICorner", shuffleBtn)
+
+shuffleBtn.MouseButton1Click:Connect(function()
+	shuffle = not shuffle
+	shuffleBtn.Text = "Shuffle: "..(shuffle and "ON" or "OFF")
+end)
+
+local repeatBtn = Instance.new("TextButton")
+repeatBtn.Size = UDim2.new(0.45,0,0,25)
+repeatBtn.Position = UDim2.new(0.5,0,0.85,0)
+repeatBtn.Text = "Repeat: ALL"
+repeatBtn.Parent = frame
+Instance.new("UICorner", repeatBtn)
+
+repeatBtn.MouseButton1Click:Connect(function()
+	if repeatMode == "all" then
+		repeatMode = "one"
+	elseif repeatMode == "one" then
+		repeatMode = "off"
+	else
+		repeatMode = "all"
+	end
+	repeatBtn.Text = "Repeat: "..repeatMode:upper()
+end)
+
+------------------------------------------------
+-- TOGGLE (U)
+------------------------------------------------
+UIS.InputBegan:Connect(function(i,gp)
+	if gp then return end
+	if i.KeyCode == Enum.KeyCode.U then
+		frame.Visible = not frame.Visible
+	end
+end)
+
+------------------------------------------------
+-- AUTO START + END HANDLER
+------------------------------------------------
+playSong(1)
+
+sound.Ended:Connect(function()
+	playSong(nextIndex())
+end)
