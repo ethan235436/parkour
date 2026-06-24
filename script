@@ -658,6 +658,12 @@ end
 -- TELEPORT
 ------------------------------------------------
 local function teleportTo(pos)
+	local root = getRoot()
+	if not root then return end
+
+	root.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
+	addLog("Teleported from history")
+end
 	local char = player.Character
 	if not char then return end
 
