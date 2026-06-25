@@ -1042,11 +1042,11 @@ Instance.new("UICorner", toggleBtn)
 
 toggleBtn.MouseButton1Click:Connect(function()
     eLaunchEnabled = not eLaunchEnabled
-    toggleBtn.Text = "E Launch: " .. (eLaunchEnabled and "ON (Enabled)" or "OFF (Disabled)")
+    toggleBtn.Text = "E Launch: " .. (eLaunchEnabled and "ON" or "OFF")
 end)
 
 ------------------------------------------------
--- TELEPORT SYSTEM
+-- TELEPORT SYSTEM (NOW WORKS WITH DISPLAY NAMES)
 ------------------------------------------------
 
 local inputBox = Instance.new("TextBox")
@@ -1075,7 +1075,10 @@ tpBtn.MouseButton1Click:Connect(function()
     local targetName = inputBox.Text:lower()
 
     for _, plr in pairs(Players:GetPlayers()) do
-        if plr.Name:lower():sub(1, #targetName) == targetName then
+        local uname = plr.Name:lower()
+        local dname = plr.DisplayName:lower()
+
+        if uname:sub(1, #targetName) == targetName or dname:sub(1, #targetName) == targetName then
             if plr.Character and localPlayer.Character then
                 local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
                 local targetHRP = plr.Character:FindFirstChild("HumanoidRootPart")
@@ -1124,7 +1127,7 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- TOGGLE (F8) + E LAUNCH
+-- TOGGLE (F8) + BODYVELOCITY E-LAUNCH
 ------------------------------------------------
 
 UIS.InputBegan:Connect(function(input, processed)
@@ -1134,23 +1137,18 @@ UIS.InputBegan:Connect(function(input, processed)
         frame.Visible = not frame.Visible
     end
 
-    -- REAL UPWARD LAUNCH
+    -- REAL BODYVELOCITY LAUNCH
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
         local char = localPlayer.Character
         if char then
             local hrp = char:FindFirstChild("HumanoidRootPart")
-            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hrp then
+                local bv = Instance.new("BodyVelocity")
+                bv.Velocity = Vector3.new(0, 120, 0) -- launch power
+                bv.MaxForce = Vector3.new(0, math.huge, 0)
+                bv.Parent = hrp
 
-            if hrp and hum then
-                -- ensure physics applies
-                hum:ChangeState(Enum.HumanoidStateType.Jumping)
-
-                -- apply upward velocity
-                hrp.AssemblyLinearVelocity = Vector3.new(
-                    hrp.AssemblyLinearVelocity.X,
-                    120, -- launch power (increase for stronger launch)
-                    hrp.AssemblyLinearVelocity.Z
-                )
+                game.Debris:AddItem(bv, 0.2)
             end
         end
     end
