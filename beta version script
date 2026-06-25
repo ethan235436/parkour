@@ -981,9 +981,6 @@ local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
--- 🔥 REPLACE THIS WITH YOUR REAL MOVEMENT CONTROLLER MODULE
-local Movement = require(localPlayer.PlayerScripts:WaitForChild("MovementController"))
-
 ------------------------------------------------
 -- STATE
 ------------------------------------------------
@@ -991,7 +988,7 @@ local Movement = require(localPlayer.PlayerScripts:WaitForChild("MovementControl
 local eLaunchEnabled = false
 
 ------------------------------------------------
--- GUI
+-- GUI SETUP
 ------------------------------------------------
 
 local debugGui = Instance.new("ScreenGui")
@@ -1130,15 +1127,20 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- PARKOUR-STYLE UPWARD BOOST (ANTICHEAT-SAFE)
+-- PARKOUR-REBORN SAFE GRAVITY LAUNCH
 ------------------------------------------------
 
-local function upwardBoost()
-    -- This is the ONLY anticheat-safe method:
-    -- Add vertical velocity INSIDE the movement controller.
-    if Movement and Movement.AddVerticalBoost then
-        Movement:AddVerticalBoost(55) -- tune this number
-    end
+local function gravityLaunch()
+    -- Read the game's actual gravity (Parkour Reborn overrides this constantly)
+    local gameGravity = workspace.Gravity
+
+    -- Reverse gravity using the game's own value
+    workspace.Gravity = -gameGravity
+
+    -- Restore after short burst
+    task.delay(0.15, function()
+        workspace.Gravity = gameGravity
+    end)
 end
 
 ------------------------------------------------
@@ -1151,6 +1153,6 @@ UIS.InputBegan:Connect(function(input)
     end
 
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
-        upwardBoost()
+        gravityLaunch()
     end
 end)
