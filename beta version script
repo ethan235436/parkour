@@ -1042,7 +1042,7 @@ Instance.new("UICorner", toggleBtn)
 
 toggleBtn.MouseButton1Click:Connect(function()
     eLaunchEnabled = not eLaunchEnabled
-    toggleBtn.Text = "E Launch: " .. (eLaunchEnabled and "ON" or "OFF")
+    toggleBtn.Text = "E Launch: " .. (eLaunchEnabled and "ON (Enabled)" or "OFF (Disabled)")
 end)
 
 ------------------------------------------------
@@ -1134,14 +1134,23 @@ UIS.InputBegan:Connect(function(input, processed)
         frame.Visible = not frame.Visible
     end
 
-    -- optional hook for E launch toggle usage
+    -- REAL UPWARD LAUNCH
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
         local char = localPlayer.Character
         if char then
             local hrp = char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                -- launch upward
-                hrp.AssemblyLinearVelocity = Vector3.new(0, 80, 0)
+            local hum = char:FindFirstChildOfClass("Humanoid")
+
+            if hrp and hum then
+                -- ensure physics applies
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+
+                -- apply upward velocity
+                hrp.AssemblyLinearVelocity = Vector3.new(
+                    hrp.AssemblyLinearVelocity.X,
+                    120, -- launch power (increase for stronger launch)
+                    hrp.AssemblyLinearVelocity.Z
+                )
             end
         end
     end
