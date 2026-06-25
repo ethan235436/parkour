@@ -977,7 +977,6 @@ end)
 
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
@@ -986,8 +985,7 @@ local playerGui = localPlayer:WaitForChild("PlayerGui")
 -- STATE
 ------------------------------------------------
 
-local eLaunchEnabled = false
-local boosting = false
+local eLaunchEnabled = false -- OFF by default
 
 ------------------------------------------------
 -- GUI
@@ -1009,7 +1007,7 @@ frame.Parent = debugGui
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 ------------------------------------------------
--- TOP BAR
+-- TOP BAR (DRAG HANDLE)
 ------------------------------------------------
 
 local top = Instance.new("Frame")
@@ -1129,38 +1127,7 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- UNBLOCKABLE CFRAME BOOST LAUNCH
-------------------------------------------------
-
-local function boostUp()
-    if boosting then return end
-    boosting = true
-
-    local char = localPlayer.Character
-    if not char then boosting = false return end
-
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then boosting = false return end
-
-    local boostTime = 0.25
-    local boostPower = 4 -- increase for stronger launch
-    local start = tick()
-
-    local conn
-    conn = RunService.RenderStepped:Connect(function()
-        local t = tick() - start
-        if t > boostTime then
-            conn:Disconnect()
-            boosting = false
-            return
-        end
-
-        hrp.CFrame = hrp.CFrame + Vector3.new(0, boostPower, 0)
-    end)
-end
-
-------------------------------------------------
--- INPUT HANDLING
+-- TOGGLE (F8) + VECTORFORCE E-LAUNCH
 ------------------------------------------------
 
 UIS.InputBegan:Connect(function(input, processed)
@@ -1170,7 +1137,27 @@ UIS.InputBegan:Connect(function(input, processed)
         frame.Visible = not frame.Visible
     end
 
+    -- VECTOR FORCE LAUNCH
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
-        boostUp()
+        local char = localPlayer.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+
+                -- Attachment for VectorForce
+                local att = Instance.new("Attachment")
+                att.Parent = hrp
+
+                local vf = Instance.new("VectorForce")
+                vf.Attachment0 = att
+                vf.Force = Vector3.new(0, 9000, 0) -- launch strength
+                vf.RelativeTo = Enum.ActuatorRelativeTo.World
+                vf.Parent = hrp
+
+                -- auto cleanup
+                game.Debris:AddItem(att, 0.15)
+                game.Debris:AddItem(vf, 0.15)
+            end
+        end
     end
 end)
