@@ -981,8 +981,8 @@ local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
--- CHANGE THIS PATH to your actual movement controller module
-local MovementController = require(localPlayer:WaitForChild("PlayerScripts"):WaitForChild("MovementController"))
+-- 🔥 REPLACE THIS WITH YOUR REAL MOVEMENT CONTROLLER MODULE
+local Movement = require(localPlayer.PlayerScripts:WaitForChild("MovementController"))
 
 ------------------------------------------------
 -- STATE
@@ -1010,7 +1010,7 @@ frame.Parent = debugGui
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 ------------------------------------------------
--- TOP BAR
+-- TOP BAR (DRAG HANDLE)
 ------------------------------------------------
 
 local top = Instance.new("Frame")
@@ -1130,18 +1130,19 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- CONTROLLER-BASED LAUNCH (CLIENT-SIDE)
+-- PARKOUR-STYLE UPWARD BOOST (ANTICHEAT-SAFE)
 ------------------------------------------------
 
-local function controllerLaunch()
-    -- this calls into your movement system instead of fighting physics
-    if MovementController and MovementController.AddVerticalBoost then
-        MovementController:AddVerticalBoost(55) -- tune this value
+local function upwardBoost()
+    -- This is the ONLY anticheat-safe method:
+    -- Add vertical velocity INSIDE the movement controller.
+    if Movement and Movement.AddVerticalBoost then
+        Movement:AddVerticalBoost(55) -- tune this number
     end
 end
 
 ------------------------------------------------
--- INPUT
+-- INPUT HANDLING
 ------------------------------------------------
 
 UIS.InputBegan:Connect(function(input)
@@ -1150,6 +1151,6 @@ UIS.InputBegan:Connect(function(input)
     end
 
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
-        controllerLaunch()
+        upwardBoost()
     end
 end)
