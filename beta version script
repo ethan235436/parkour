@@ -977,6 +977,7 @@ end)
 
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
@@ -985,7 +986,8 @@ local playerGui = localPlayer:WaitForChild("PlayerGui")
 -- STATE
 ------------------------------------------------
 
-local eLaunchEnabled = false -- OFF by default
+local eLaunchEnabled = false
+local boosting = false
 
 ------------------------------------------------
 -- GUI
@@ -1007,7 +1009,7 @@ frame.Parent = debugGui
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 ------------------------------------------------
--- TOP BAR (DRAG HANDLE)
+-- TOP BAR
 ------------------------------------------------
 
 local top = Instance.new("Frame")
@@ -1127,7 +1129,38 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- TOGGLE (F8) + APPLYIMPULSE E-LAUNCH
+-- UNBLOCKABLE CFRAME BOOST LAUNCH
+------------------------------------------------
+
+local function boostUp()
+    if boosting then return end
+    boosting = true
+
+    local char = localPlayer.Character
+    if not char then boosting = false return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then boosting = false return end
+
+    local boostTime = 0.25
+    local boostPower = 4 -- increase for stronger launch
+    local start = tick()
+
+    local conn
+    conn = RunService.RenderStepped:Connect(function()
+        local t = tick() - start
+        if t > boostTime then
+            conn:Disconnect()
+            boosting = false
+            return
+        end
+
+        hrp.CFrame = hrp.CFrame + Vector3.new(0, boostPower, 0)
+    end)
+end
+
+------------------------------------------------
+-- INPUT HANDLING
 ------------------------------------------------
 
 UIS.InputBegan:Connect(function(input, processed)
@@ -1137,15 +1170,7 @@ UIS.InputBegan:Connect(function(input, processed)
         frame.Visible = not frame.Visible
     end
 
-    -- UNBLOCKABLE PHYSICS IMPULSE LAUNCH
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
-        local char = localPlayer.Character
-        if char then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                -- Apply a raw physics impulse upward
-                hrp:ApplyImpulse(Vector3.new(0, hrp.AssemblyMass * 180, 0))
-            end
-        end
+        boostUp()
     end
 end)
