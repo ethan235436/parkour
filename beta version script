@@ -1128,7 +1128,7 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- JUMP-BOOST LAUNCH (WORKS WITH YOUR GAME)
+-- JUMP-BOOST LAUNCH
 ------------------------------------------------
 
 local function jumpBoostLaunch()
@@ -1139,10 +1139,9 @@ local function jumpBoostLaunch()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hum or not hrp then return end
 
-    -- Trigger a normal jump (allowed by your game)
+    -- trigger normal jump
     hum.Jump = true
 
-    -- Smooth upward boost WHILE in jump state
     local boostTime = 0.35
     local boostPower = 1.6
     local start = tick()
@@ -1155,7 +1154,6 @@ local function jumpBoostLaunch()
             return
         end
 
-        -- Add small upward velocity (allowed by your game)
         hrp.AssemblyLinearVelocity = Vector3.new(
             hrp.AssemblyLinearVelocity.X,
             math.min(hrp.AssemblyLinearVelocity.Y + boostPower, 55),
@@ -1165,12 +1163,10 @@ local function jumpBoostLaunch()
 end
 
 ------------------------------------------------
--- INPUT HANDLING
+-- INPUT HANDLING (NO processed CHECK)
 ------------------------------------------------
 
-UIS.InputBegan:Connect(function(input, processed)
-    if processed then return end
-
+UIS.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F8 then
         frame.Visible = not frame.Visible
     end
