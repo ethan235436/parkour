@@ -977,6 +977,7 @@ end)
 
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
@@ -986,9 +987,10 @@ local playerGui = localPlayer:WaitForChild("PlayerGui")
 ------------------------------------------------
 
 local eLaunchEnabled = false
+local boosting = false
 
 ------------------------------------------------
--- GUI SETUP
+-- GUI
 ------------------------------------------------
 
 local debugGui = Instance.new("ScreenGui")
@@ -1007,7 +1009,7 @@ frame.Parent = debugGui
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 ------------------------------------------------
--- TOP BAR (DRAG HANDLE)
+-- TOP BAR
 ------------------------------------------------
 
 local top = Instance.new("Frame")
@@ -1046,7 +1048,7 @@ toggleBtn.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------
--- TELEPORT (USERNAME + DISPLAYNAME)
+-- TELEPORT SYSTEM (USERNAME + DISPLAYNAME)
 ------------------------------------------------
 
 local inputBox = Instance.new("TextBox")
@@ -1127,19 +1129,33 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- PARKOUR-REBORN SAFE GRAVITY LAUNCH
+-- UNBLOCKABLE CFRAME BOOST LAUNCH
 ------------------------------------------------
 
-local function gravityLaunch()
-    -- Read the game's actual gravity (Parkour Reborn overrides this constantly)
-    local gameGravity = workspace.Gravity
+local function boostUp()
+    if boosting then return end
+    boosting = true
 
-    -- Reverse gravity using the game's own value
-    workspace.Gravity = -gameGravity
+    local char = localPlayer.Character
+    if not char then boosting = false return end
 
-    -- Restore after short burst
-    task.delay(0.15, function()
-        workspace.Gravity = gameGravity
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then boosting = false return end
+
+    local boostTime = 0.25
+    local boostPower = 4 -- increase for stronger launch
+    local start = tick()
+
+    local conn
+    conn = RunService.RenderStepped:Connect(function()
+        local t = tick() - start
+        if t > boostTime then
+            conn:Disconnect()
+            boosting = false
+            return
+        end
+
+        hrp.CFrame = hrp.CFrame + Vector3.new(0, boostPower, 0)
     end)
 end
 
@@ -1147,12 +1163,14 @@ end
 -- INPUT HANDLING
 ------------------------------------------------
 
-UIS.InputBegan:Connect(function(input)
+UIS.InputBegan:Connect(function(input, processed)
+    if processed then return end
+
     if input.KeyCode == Enum.KeyCode.F8 then
         frame.Visible = not frame.Visible
     end
 
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
-        gravityLaunch()
+        boostUp()
     end
 end)
