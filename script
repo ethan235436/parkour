@@ -613,7 +613,7 @@ UIS.InputBegan:Connect(function(input, processed)
 	if processed or scriptKilled then return end
 
 	-- BACKSLASH → COPY COORDS
-	if input.KeyCode == Enum.KeyCode.BackSlash then
+	if input.KeyCode == Enum.KeyCode.Quote then
 		flashCoords()
 	end
 
