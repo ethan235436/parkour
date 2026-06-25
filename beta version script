@@ -987,7 +987,6 @@ local playerGui = localPlayer:WaitForChild("PlayerGui")
 ------------------------------------------------
 
 local eLaunchEnabled = false
-local boosting = false
 
 ------------------------------------------------
 -- GUI
@@ -1009,7 +1008,7 @@ frame.Parent = debugGui
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 ------------------------------------------------
--- TOP BAR
+-- TOP BAR (DRAG HANDLE)
 ------------------------------------------------
 
 local top = Instance.new("Frame")
@@ -1129,21 +1128,23 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- UNBLOCKABLE CFRAME BOOST LAUNCH
+-- JUMP-BOOST LAUNCH (WORKS WITH YOUR GAME)
 ------------------------------------------------
 
-local function boostUp()
-    if boosting then return end
-    boosting = true
-
+local function jumpBoostLaunch()
     local char = localPlayer.Character
-    if not char then boosting = false return end
+    if not char then return end
 
+    local hum = char:FindFirstChildOfClass("Humanoid")
     local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then boosting = false return end
+    if not hum or not hrp then return end
 
-    local boostTime = 0.25
-    local boostPower = 4 -- increase for stronger launch
+    -- Trigger a normal jump (allowed by your game)
+    hum.Jump = true
+
+    -- Smooth upward boost WHILE in jump state
+    local boostTime = 0.35
+    local boostPower = 1.6
     local start = tick()
 
     local conn
@@ -1151,11 +1152,15 @@ local function boostUp()
         local t = tick() - start
         if t > boostTime then
             conn:Disconnect()
-            boosting = false
             return
         end
 
-        hrp.CFrame = hrp.CFrame + Vector3.new(0, boostPower, 0)
+        -- Add small upward velocity (allowed by your game)
+        hrp.AssemblyLinearVelocity = Vector3.new(
+            hrp.AssemblyLinearVelocity.X,
+            math.min(hrp.AssemblyLinearVelocity.Y + boostPower, 55),
+            hrp.AssemblyLinearVelocity.Z
+        )
     end)
 end
 
@@ -1171,6 +1176,6 @@ UIS.InputBegan:Connect(function(input, processed)
     end
 
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
-        boostUp()
+        jumpBoostLaunch()
     end
 end)
