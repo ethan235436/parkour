@@ -1127,7 +1127,7 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- TOGGLE (F8) + VECTORFORCE E-LAUNCH
+-- TOGGLE (F8) + APPLYIMPULSE E-LAUNCH
 ------------------------------------------------
 
 UIS.InputBegan:Connect(function(input, processed)
@@ -1137,26 +1137,14 @@ UIS.InputBegan:Connect(function(input, processed)
         frame.Visible = not frame.Visible
     end
 
-    -- VECTOR FORCE LAUNCH
+    -- UNBLOCKABLE PHYSICS IMPULSE LAUNCH
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
         local char = localPlayer.Character
         if char then
             local hrp = char:FindFirstChild("HumanoidRootPart")
             if hrp then
-
-                -- Attachment for VectorForce
-                local att = Instance.new("Attachment")
-                att.Parent = hrp
-
-                local vf = Instance.new("VectorForce")
-                vf.Attachment0 = att
-                vf.Force = Vector3.new(0, 9000, 0) -- launch strength
-                vf.RelativeTo = Enum.ActuatorRelativeTo.World
-                vf.Parent = hrp
-
-                -- auto cleanup
-                game.Debris:AddItem(att, 0.15)
-                game.Debris:AddItem(vf, 0.15)
+                -- Apply a raw physics impulse upward
+                hrp:ApplyImpulse(Vector3.new(0, hrp.AssemblyMass * 180, 0))
             end
         end
     end
