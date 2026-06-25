@@ -971,3 +971,170 @@ UIS.InputBegan:Connect(function(input, processed)
 		frame.Visible = not frame.Visible
 	end
 end)
+------------------------------------------------
+-- DEBUG MENU (F8)
+------------------------------------------------
+
+local UIS = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+
+local localPlayer = Players.LocalPlayer
+
+------------------------------------------------
+-- STATE
+------------------------------------------------
+
+local eLaunchEnabled = false -- OFF by default
+
+------------------------------------------------
+-- GUI
+------------------------------------------------
+
+local debugGui = Instance.new("ScreenGui")
+debugGui.Name = "DebugMenu"
+debugGui.ResetOnSpawn = false
+debugGui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 420, 0, 260)
+frame.Position = UDim2.new(0.5, -210, 0.5, -130)
+frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+frame.BackgroundTransparency = 0.1
+frame.Visible = false
+frame.Parent = debugGui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+------------------------------------------------
+-- TOP BAR (DRAG HANDLE)
+------------------------------------------------
+
+local top = Instance.new("Frame")
+top.Size = UDim2.new(1, 0, 0, 35)
+top.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+top.BorderSizePixel = 0
+top.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 1, 0)
+title.BackgroundTransparency = 1
+title.Text = "DEBUG MENU"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(0, 255, 255)
+title.Parent = top
+
+------------------------------------------------
+-- TOGGLE: E LAUNCH
+------------------------------------------------
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
+toggleBtn.Position = UDim2.new(0.05, 0, 0, 50)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+toggleBtn.TextColor3 = Color3.fromRGB(200, 255, 255)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 14
+toggleBtn.Text = "E Launch: OFF (Disabled)"
+toggleBtn.Parent = frame
+Instance.new("UICorner", toggleBtn)
+
+toggleBtn.MouseButton1Click:Connect(function()
+	eLaunchEnabled = not eLaunchEnabled
+	toggleBtn.Text = "E Launch: " .. (eLaunchEnabled and "ON" or "OFF")
+end)
+
+------------------------------------------------
+-- TELEPORT SYSTEM
+------------------------------------------------
+
+local inputBox = Instance.new("TextBox")
+inputBox.Size = UDim2.new(0.9, 0, 0, 35)
+inputBox.Position = UDim2.new(0.05, 0, 0, 110)
+inputBox.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+inputBox.PlaceholderText = "Enter username..."
+inputBox.Font = Enum.Font.Code
+inputBox.TextSize = 14
+inputBox.Parent = frame
+Instance.new("UICorner", inputBox)
+
+local tpBtn = Instance.new("TextButton")
+tpBtn.Size = UDim2.new(0.9, 0, 0, 35)
+tpBtn.Position = UDim2.new(0.05, 0, 0, 155)
+tpBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+tpBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
+tpBtn.Font = Enum.Font.GothamBold
+tpBtn.TextSize = 14
+tpBtn.Text = "Teleport"
+tpBtn.Parent = frame
+Instance.new("UICorner", tpBtn)
+
+tpBtn.MouseButton1Click:Connect(function()
+	local targetName = inputBox.Text:lower()
+
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr.Name:lower():sub(1, #targetName) == targetName then
+			if plr.Character and localPlayer.Character then
+				local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+				local targetHRP = plr.Character:FindFirstChild("HumanoidRootPart")
+
+				if hrp and targetHRP then
+					hrp.CFrame = targetHRP.CFrame + Vector3.new(2, 0, 0)
+				end
+			end
+			break
+		end
+	end
+end)
+
+------------------------------------------------
+-- DRAGGING
+------------------------------------------------
+
+local dragging = false
+local dragStart
+local startPos
+
+top.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+------------------------------------------------
+-- TOGGLE (F8)
+------------------------------------------------
+
+UIS.InputBegan:Connect(function(input, processed)
+	if processed then return end
+
+	if input.KeyCode == Enum.KeyCode.F8 then
+		frame.Visible = not frame.Visible
+	end
+
+	-- optional hook for E launch toggle usage
+	if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
+		-- your existing launch logic can be called here
+	end
+end)
