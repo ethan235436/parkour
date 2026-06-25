@@ -987,6 +987,7 @@ local playerGui = localPlayer:WaitForChild("PlayerGui")
 ------------------------------------------------
 
 local eLaunchEnabled = false
+local boosting = false
 
 ------------------------------------------------
 -- GUI
@@ -1008,7 +1009,7 @@ frame.Parent = debugGui
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 ------------------------------------------------
--- TOP BAR (DRAG HANDLE)
+-- TOP BAR
 ------------------------------------------------
 
 local top = Instance.new("Frame")
@@ -1128,22 +1129,27 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- JUMP-BOOST LAUNCH
+-- MULTI-FRAME VECTORFORCE LAUNCH (UNCLAMPED)
 ------------------------------------------------
 
-local function jumpBoostLaunch()
+local function vectorBoostLaunch()
+    if boosting then return end
+    boosting = true
+
     local char = localPlayer.Character
-    if not char then return end
+    if not char then boosting = false return end
 
-    local hum = char:FindFirstChildOfClass("Humanoid")
     local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hum or not hrp then return end
+    if not hrp then boosting = false return end
 
-    -- trigger normal jump
-    hum.Jump = true
+    local att = Instance.new("Attachment", hrp)
+    local vf = Instance.new("VectorForce")
+    vf.Attachment0 = att
+    vf.RelativeTo = Enum.ActuatorRelativeTo.World
+    vf.Force = Vector3.new(0, 0, 0)
+    vf.Parent = hrp
 
-    local boostTime = 0.35
-    local boostPower = 1.6
+    local boostTime = 0.25
     local start = tick()
 
     local conn
@@ -1151,19 +1157,19 @@ local function jumpBoostLaunch()
         local t = tick() - start
         if t > boostTime then
             conn:Disconnect()
+            vf:Destroy()
+            att:Destroy()
+            boosting = false
             return
         end
 
-        hrp.AssemblyLinearVelocity = Vector3.new(
-            hrp.AssemblyLinearVelocity.X,
-            math.min(hrp.AssemblyLinearVelocity.Y + boostPower, 55),
-            hrp.AssemblyLinearVelocity.Z
-        )
+        -- Apply force over time (bypasses clamp)
+        vf.Force = Vector3.new(0, 6000, 0)
     end)
 end
 
 ------------------------------------------------
--- INPUT HANDLING (NO processed CHECK)
+-- INPUT HANDLING
 ------------------------------------------------
 
 UIS.InputBegan:Connect(function(input)
@@ -1172,6 +1178,6 @@ UIS.InputBegan:Connect(function(input)
     end
 
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
-        jumpBoostLaunch()
+        vectorBoostLaunch()
     end
 end)
