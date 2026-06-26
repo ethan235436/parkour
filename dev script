@@ -972,11 +972,12 @@ UIS.InputBegan:Connect(function(input, processed)
 	end
 end)
 ------------------------------------------------
--- DEBUG MENU (F8)
+-- DEBUG MENU (F8) + E LAUNCH + ` REWIND
 ------------------------------------------------
 
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
@@ -986,8 +987,12 @@ local playerGui = localPlayer:WaitForChild("PlayerGui")
 ------------------------------------------------
 
 local eLaunchEnabled = false
-local rewindEnabled = false -- NEW
-local launchPower = 50 -- default slider value (1–100)
+local rewindEnabled = false
+local isRewinding = false
+local launchPower = 50
+
+local positionHistory = {}
+local maxHistory = 600 -- ~10 seconds at 60 fps
 
 ------------------------------------------------
 -- GUI
@@ -999,7 +1004,7 @@ debugGui.ResetOnSpawn = false
 debugGui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 420, 0, 380) -- BIGGER MENU
+frame.Size = UDim2.new(0, 420, 0, 380)
 frame.Position = UDim2.new(0.5, -210, 0.5, -190)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 frame.BackgroundTransparency = 0.1
@@ -1007,10 +1012,6 @@ frame.Visible = false
 frame.Parent = debugGui
 
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
-
-------------------------------------------------
--- TOP BAR (DRAG HANDLE)
-------------------------------------------------
 
 local top = Instance.new("Frame")
 top.Size = UDim2.new(1, 0, 0, 35)
@@ -1048,7 +1049,7 @@ toggleBtn.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------
--- NEW BUTTON: BACKTICK REWIND TOGGLE
+-- TOGGLE: ` REWIND
 ------------------------------------------------
 
 local rewindBtn = Instance.new("TextButton")
@@ -1126,7 +1127,7 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- TELEPORT SYSTEM (USERNAME + DISPLAYNAME)
+-- TELEPORT SYSTEM
 ------------------------------------------------
 
 local inputBox = Instance.new("TextBox")
@@ -1207,24 +1208,45 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
+-- MOVEMENT RECORDING + REWIND
+------------------------------------------------
+
+RunService.Heartbeat:Connect(function()
+    local char = localPlayer.Character
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    if not isRewinding then
+        table.insert(positionHistory, hrp.CFrame)
+        if #positionHistory > maxHistory then
+            table.remove(positionHistory, 1)
+        end
+    else
+        if #positionHistory > 0 then
+            hrp.CFrame = positionHistory[#positionHistory]
+            table.remove(positionHistory, #positionHistory)
+        end
+    end
+end)
+
+------------------------------------------------
 -- INPUT HANDLING (F8, E, `)
 ------------------------------------------------
 
 UIS.InputBegan:Connect(function(input, processed)
     if processed then return end
 
-    -- Toggle menu
     if input.KeyCode == Enum.KeyCode.F8 then
         frame.Visible = not frame.Visible
     end
 
-    -- Launch
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
         local char = localPlayer.Character
         if char then
             local hrp = char:FindFirstChild("HumanoidRootPart")
             if hrp then
-
                 local att = Instance.new("Attachment")
                 att.Parent = hrp
 
@@ -1243,14 +1265,13 @@ UIS.InputBegan:Connect(function(input, processed)
         end
     end
 
-    -- REWIND (HOLD BACKTICK)
     if input.KeyCode == Enum.KeyCode.Backquote and rewindEnabled then
-        -- no placeholder
+        isRewinding = true
     end
 end)
 
 UIS.InputEnded:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.Backquote and rewindEnabled then
-        -- no placeholder
+        isRewinding = false
     end
 end)
