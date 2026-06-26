@@ -1209,7 +1209,7 @@ UIS.InputBegan:Connect(function(input, processed)
                 vf.Attachment0 = att
 
                 -- MUCH STRONGER FORCE SCALING
-                local scaledForce = launchPower * 200 -- 1 = tiny hop, 100 = YEET
+                local scaledForce = launchPower * 600 -- 1 = tiny hop, 100 = YEET
                 vf.Force = Vector3.new(0, scaledForce, 0)
 
                 vf.RelativeTo = Enum.ActuatorRelativeTo.World
