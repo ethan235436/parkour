@@ -985,7 +985,8 @@ local playerGui = localPlayer:WaitForChild("PlayerGui")
 -- STATE
 ------------------------------------------------
 
-local eLaunchEnabled = false -- OFF by default
+local eLaunchEnabled = false
+local launchPower = 50 -- default slider value (1–100)
 
 ------------------------------------------------
 -- GUI
@@ -997,8 +998,8 @@ debugGui.ResetOnSpawn = false
 debugGui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 420, 0, 260)
-frame.Position = UDim2.new(0.5, -210, 0.5, -130)
+frame.Size = UDim2.new(0, 420, 0, 300)
+frame.Position = UDim2.new(0.5, -210, 0.5, -150)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 frame.BackgroundTransparency = 0.1
 frame.Visible = false
@@ -1046,12 +1047,69 @@ toggleBtn.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------
+-- POWER SLIDER (1–100)
+------------------------------------------------
+
+local sliderFrame = Instance.new("Frame")
+sliderFrame.Size = UDim2.new(0.9, 0, 0, 40)
+sliderFrame.Position = UDim2.new(0.05, 0, 0, 95)
+sliderFrame.BackgroundTransparency = 1
+sliderFrame.Parent = frame
+
+local sliderBar = Instance.new("Frame")
+sliderBar.Size = UDim2.new(1, 0, 0, 6)
+sliderBar.Position = UDim2.new(0, 0, 0.5, -3)
+sliderBar.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+sliderBar.Parent = sliderFrame
+Instance.new("UICorner", sliderBar).CornerRadius = UDim.new(0, 3)
+
+local knob = Instance.new("Frame")
+knob.Size = UDim2.new(0, 18, 0, 18)
+knob.Position = UDim2.new(launchPower/100, -9, 0.5, -9)
+knob.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+knob.Parent = sliderFrame
+Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+
+local powerLabel = Instance.new("TextLabel")
+powerLabel.Size = UDim2.new(1, 0, 0, 20)
+powerLabel.Position = UDim2.new(0, 0, 0, -20)
+powerLabel.BackgroundTransparency = 1
+powerLabel.Text = "Power: " .. launchPower
+powerLabel.Font = Enum.Font.GothamBold
+powerLabel.TextSize = 14
+powerLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+powerLabel.Parent = sliderFrame
+
+local draggingSlider = false
+
+knob.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingSlider = true
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingSlider = false
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if draggingSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local relX = math.clamp((input.Position.X - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
+        launchPower = math.floor(relX * 100)
+        knob.Position = UDim2.new(relX, -9, 0.5, -9)
+        powerLabel.Text = "Power: " .. launchPower
+    end
+end)
+
+------------------------------------------------
 -- TELEPORT SYSTEM (USERNAME + DISPLAYNAME)
 ------------------------------------------------
 
 local inputBox = Instance.new("TextBox")
 inputBox.Size = UDim2.new(0.9, 0, 0, 35)
-inputBox.Position = UDim2.new(0.05, 0, 0, 110)
+inputBox.Position = UDim2.new(0.05, 0, 0, 145)
 inputBox.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 inputBox.PlaceholderText = "Enter username..."
@@ -1062,7 +1120,7 @@ Instance.new("UICorner", inputBox)
 
 local tpBtn = Instance.new("TextButton")
 tpBtn.Size = UDim2.new(0.9, 0, 0, 35)
-tpBtn.Position = UDim2.new(0.05, 0, 0, 155)
+tpBtn.Position = UDim2.new(0.05, 0, 0, 190)
 tpBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 tpBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
 tpBtn.Font = Enum.Font.GothamBold
@@ -1127,7 +1185,7 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- TOGGLE (F8) + VECTORFORCE E-LAUNCH
+-- TOGGLE (F8) + VECTORFORCE E-LAUNCH WITH POWER
 ------------------------------------------------
 
 UIS.InputBegan:Connect(function(input, processed)
@@ -1137,24 +1195,25 @@ UIS.InputBegan:Connect(function(input, processed)
         frame.Visible = not frame.Visible
     end
 
-    -- VECTOR FORCE LAUNCH
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
         local char = localPlayer.Character
         if char then
             local hrp = char:FindFirstChild("HumanoidRootPart")
             if hrp then
 
-                -- Attachment for VectorForce
                 local att = Instance.new("Attachment")
                 att.Parent = hrp
 
                 local vf = Instance.new("VectorForce")
                 vf.Attachment0 = att
-                vf.Force = Vector3.new(0, 9000, 0) -- launch strength
+
+                -- Scale force by slider (1–100)
+                local scaledForce = 80 * launchPower
+                vf.Force = Vector3.new(0, scaledForce, 0)
+
                 vf.RelativeTo = Enum.ActuatorRelativeTo.World
                 vf.Parent = hrp
 
-                -- auto cleanup
                 game.Debris:AddItem(att, 0.15)
                 game.Debris:AddItem(vf, 0.15)
             end
