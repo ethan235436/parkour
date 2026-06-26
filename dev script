@@ -986,6 +986,7 @@ local playerGui = localPlayer:WaitForChild("PlayerGui")
 ------------------------------------------------
 
 local eLaunchEnabled = false
+local rewindEnabled = false -- NEW
 local launchPower = 50 -- default slider value (1–100)
 
 ------------------------------------------------
@@ -998,8 +999,8 @@ debugGui.ResetOnSpawn = false
 debugGui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 420, 0, 330)
-frame.Position = UDim2.new(0.5, -210, 0.5, -165)
+frame.Size = UDim2.new(0, 420, 0, 380) -- BIGGER MENU
+frame.Position = UDim2.new(0.5, -210, 0.5, -190)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 frame.BackgroundTransparency = 0.1
 frame.Visible = false
@@ -1047,12 +1048,32 @@ toggleBtn.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------
+-- NEW BUTTON: BACKTICK REWIND TOGGLE
+------------------------------------------------
+
+local rewindBtn = Instance.new("TextButton")
+rewindBtn.Size = UDim2.new(0.9, 0, 0, 35)
+rewindBtn.Position = UDim2.new(0.05, 0, 0, 95)
+rewindBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+rewindBtn.TextColor3 = Color3.fromRGB(200, 255, 255)
+rewindBtn.Font = Enum.Font.GothamBold
+rewindBtn.TextSize = 14
+rewindBtn.Text = "` Rewind: OFF (Disabled)"
+rewindBtn.Parent = frame
+Instance.new("UICorner", rewindBtn)
+
+rewindBtn.MouseButton1Click:Connect(function()
+    rewindEnabled = not rewindEnabled
+    rewindBtn.Text = "` Rewind: " .. (rewindEnabled and "ON" or "OFF")
+end)
+
+------------------------------------------------
 -- POWER SLIDER (1–100)
 ------------------------------------------------
 
 local sliderFrame = Instance.new("Frame")
 sliderFrame.Size = UDim2.new(0.9, 0, 0, 60)
-sliderFrame.Position = UDim2.new(0.05, 0, 0, 95)
+sliderFrame.Position = UDim2.new(0.05, 0, 0, 145)
 sliderFrame.BackgroundTransparency = 1
 sliderFrame.Parent = frame
 
@@ -1110,7 +1131,7 @@ end)
 
 local inputBox = Instance.new("TextBox")
 inputBox.Size = UDim2.new(0.9, 0, 0, 35)
-inputBox.Position = UDim2.new(0.05, 0, 0, 165)
+inputBox.Position = UDim2.new(0.05, 0, 0, 215)
 inputBox.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 inputBox.PlaceholderText = "Enter username..."
@@ -1121,7 +1142,7 @@ Instance.new("UICorner", inputBox)
 
 local tpBtn = Instance.new("TextButton")
 tpBtn.Size = UDim2.new(0.9, 0, 0, 35)
-tpBtn.Position = UDim2.new(0.05, 0, 0, 210)
+tpBtn.Position = UDim2.new(0.05, 0, 0, 260)
 tpBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 tpBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
 tpBtn.Font = Enum.Font.GothamBold
@@ -1186,16 +1207,18 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- TOGGLE (F8) + VECTORFORCE E-LAUNCH WITH POWER
+-- INPUT HANDLING (F8, E, `)
 ------------------------------------------------
 
 UIS.InputBegan:Connect(function(input, processed)
     if processed then return end
 
+    -- Toggle menu
     if input.KeyCode == Enum.KeyCode.F8 then
         frame.Visible = not frame.Visible
     end
 
+    -- Launch
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
         local char = localPlayer.Character
         if char then
@@ -1208,8 +1231,7 @@ UIS.InputBegan:Connect(function(input, processed)
                 local vf = Instance.new("VectorForce")
                 vf.Attachment0 = att
 
-                -- MUCH STRONGER FORCE SCALING
-                local scaledForce = launchPower * 600 -- 1 = tiny hop, 100 = YEET
+                local scaledForce = launchPower * 600
                 vf.Force = Vector3.new(0, scaledForce, 0)
 
                 vf.RelativeTo = Enum.ActuatorRelativeTo.World
@@ -1219,5 +1241,16 @@ UIS.InputBegan:Connect(function(input, processed)
                 game.Debris:AddItem(vf, 0.15)
             end
         end
+    end
+
+    -- REWIND (HOLD BACKTICK)
+    if input.KeyCode == Enum.KeyCode.Backquote and rewindEnabled then
+        -- no placeholder
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Backquote and rewindEnabled then
+        -- no placeholder
     end
 end)
