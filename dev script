@@ -1097,7 +1097,7 @@ end)
 UIS.InputChanged:Connect(function(input)
     if draggingSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
         local relX = math.clamp((input.Position.X - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
-        launchPower = math.floor(relX * 100)
+        launchPower = math.floor((relX ^ 3) * 100)
 
         knob.Position = UDim2.new(relX, -9, 0, 1)
         powerLabel.Text = "Power: " .. launchPower
