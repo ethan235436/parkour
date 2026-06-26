@@ -972,12 +972,11 @@ UIS.InputBegan:Connect(function(input, processed)
 	end
 end)
 ------------------------------------------------
--- DEBUG MENU (F8) + E LAUNCH + ` REWIND
+-- DEBUG MENU (F8)
 ------------------------------------------------
 
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
@@ -987,12 +986,7 @@ local playerGui = localPlayer:WaitForChild("PlayerGui")
 ------------------------------------------------
 
 local eLaunchEnabled = false
-local rewindEnabled = false
-local isRewinding = false
-local launchPower = 50
-
-local positionHistory = {}
-local maxHistory = 600 -- ~10 seconds at 60 fps
+local launchPower = 50 -- default slider value (1–100)
 
 ------------------------------------------------
 -- GUI
@@ -1004,14 +998,18 @@ debugGui.ResetOnSpawn = false
 debugGui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 420, 0, 380)
-frame.Position = UDim2.new(0.5, -210, 0.5, -190)
+frame.Size = UDim2.new(0, 420, 0, 330)
+frame.Position = UDim2.new(0.5, -210, 0.5, -165)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 frame.BackgroundTransparency = 0.1
 frame.Visible = false
 frame.Parent = debugGui
 
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+------------------------------------------------
+-- TOP BAR (DRAG HANDLE)
+------------------------------------------------
 
 local top = Instance.new("Frame")
 top.Size = UDim2.new(1, 0, 0, 35)
@@ -1049,32 +1047,12 @@ toggleBtn.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------
--- TOGGLE: ` REWIND
-------------------------------------------------
-
-local rewindBtn = Instance.new("TextButton")
-rewindBtn.Size = UDim2.new(0.9, 0, 0, 35)
-rewindBtn.Position = UDim2.new(0.05, 0, 0, 95)
-rewindBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-rewindBtn.TextColor3 = Color3.fromRGB(200, 255, 255)
-rewindBtn.Font = Enum.Font.GothamBold
-rewindBtn.TextSize = 14
-rewindBtn.Text = "` Rewind: OFF (Disabled)"
-rewindBtn.Parent = frame
-Instance.new("UICorner", rewindBtn)
-
-rewindBtn.MouseButton1Click:Connect(function()
-    rewindEnabled = not rewindEnabled
-    rewindBtn.Text = "` Rewind: " .. (rewindEnabled and "ON" or "OFF")
-end)
-
-------------------------------------------------
 -- POWER SLIDER (1–100)
 ------------------------------------------------
 
 local sliderFrame = Instance.new("Frame")
 sliderFrame.Size = UDim2.new(0.9, 0, 0, 60)
-sliderFrame.Position = UDim2.new(0.05, 0, 0, 145)
+sliderFrame.Position = UDim2.new(0.05, 0, 0, 95)
 sliderFrame.BackgroundTransparency = 1
 sliderFrame.Parent = frame
 
@@ -1119,6 +1097,7 @@ end)
 UIS.InputChanged:Connect(function(input)
     if draggingSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
         local relX = math.clamp((input.Position.X - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
+        launchPower = math.floor(relX * 100)
         launchPower = math.floor((relX ^ 3) * 100)
 
         knob.Position = UDim2.new(relX, -9, 0, 1)
@@ -1127,12 +1106,12 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- TELEPORT SYSTEM
+-- TELEPORT SYSTEM (USERNAME + DISPLAYNAME)
 ------------------------------------------------
 
 local inputBox = Instance.new("TextBox")
 inputBox.Size = UDim2.new(0.9, 0, 0, 35)
-inputBox.Position = UDim2.new(0.05, 0, 0, 215)
+inputBox.Position = UDim2.new(0.05, 0, 0, 165)
 inputBox.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 inputBox.PlaceholderText = "Enter username..."
@@ -1143,7 +1122,7 @@ Instance.new("UICorner", inputBox)
 
 local tpBtn = Instance.new("TextButton")
 tpBtn.Size = UDim2.new(0.9, 0, 0, 35)
-tpBtn.Position = UDim2.new(0.05, 0, 0, 260)
+tpBtn.Position = UDim2.new(0.05, 0, 0, 210)
 tpBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 tpBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
 tpBtn.Font = Enum.Font.GothamBold
@@ -1208,31 +1187,7 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------
--- MOVEMENT RECORDING + REWIND
-------------------------------------------------
-
-RunService.Heartbeat:Connect(function()
-    local char = localPlayer.Character
-    if not char then return end
-
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    if not isRewinding then
-        table.insert(positionHistory, hrp.CFrame)
-        if #positionHistory > maxHistory then
-            table.remove(positionHistory, 1)
-        end
-    else
-        if #positionHistory > 0 then
-            hrp.CFrame = positionHistory[#positionHistory]
-            table.remove(positionHistory, #positionHistory)
-        end
-    end
-end)
-
-------------------------------------------------
--- INPUT HANDLING (F8, E, `)
+-- TOGGLE (F8) + VECTORFORCE E-LAUNCH WITH POWER
 ------------------------------------------------
 
 UIS.InputBegan:Connect(function(input, processed)
@@ -1247,13 +1202,15 @@ UIS.InputBegan:Connect(function(input, processed)
         if char then
             local hrp = char:FindFirstChild("HumanoidRootPart")
             if hrp then
+
                 local att = Instance.new("Attachment")
                 att.Parent = hrp
 
                 local vf = Instance.new("VectorForce")
                 vf.Attachment0 = att
 
-                local scaledForce = launchPower * 600
+                -- MUCH STRONGER FORCE SCALING
+                local scaledForce = launchPower * 600 -- 1 = tiny hop, 100 = YEET
                 vf.Force = Vector3.new(0, scaledForce, 0)
 
                 vf.RelativeTo = Enum.ActuatorRelativeTo.World
@@ -1263,15 +1220,5 @@ UIS.InputBegan:Connect(function(input, processed)
                 game.Debris:AddItem(vf, 0.15)
             end
         end
-    end
-
-    if input.KeyCode == Enum.KeyCode.Backquote and rewindEnabled then
-        isRewinding = true
-    end
-end)
-
-UIS.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.Backquote and rewindEnabled then
-        isRewinding = false
     end
 end)
