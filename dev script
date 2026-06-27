@@ -135,6 +135,8 @@ while not _G.ScriptUnlocked and not _G.ScriptKilled do
     task.wait()
 end
 
+if _G.ScriptKilled then return end
+
 ------------------------------------------------
 -- SCRIPT CONTINUES BELOW THIS POINT
 ------------------------------------------------
