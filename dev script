@@ -1380,3 +1380,89 @@ UIS.InputBegan:Connect(function(input, processed)
         end
     end
 end)
+------------------------------------------------
+-- ADDON: PHONE + ARM POSE WHEN DEBUG MENU OPENS
+------------------------------------------------
+
+local char = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+
+------------------------------------------------
+-- CREATE PHONE (CLIENT-SIDE ONLY)
+------------------------------------------------
+
+local phone = Instance.new("Part")
+phone.Size = Vector3.new(0.3, 0.6, 0.05)
+phone.Color = Color3.fromRGB(20, 20, 20)
+phone.Material = Enum.Material.SmoothPlastic
+phone.CanCollide = false
+phone.Anchored = false
+phone.Name = "DebugPhone"
+phone.Parent = workspace
+
+local weld = Instance.new("Weld")
+weld.Part0 = phone
+
+------------------------------------------------
+-- ATTACH / DETACH PHONE
+------------------------------------------------
+
+local function attachPhone()
+    local char = localPlayer.Character
+    if not char then return end
+
+    local hand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
+    if not hand then return end
+
+    weld.Part1 = hand
+    weld.Parent = phone
+
+    phone.CFrame = hand.CFrame
+        * CFrame.new(0, -0.5, -0.2)
+        * CFrame.Angles(0, math.rad(90), 0)
+end
+
+local function detachPhone()
+    weld.Part1 = nil
+    phone.CFrame = CFrame.new(9999, 9999, 9999) -- hide it
+end
+
+------------------------------------------------
+-- ARM POSE ANIMATION
+------------------------------------------------
+
+local armTrack = nil
+
+local function moveArmForward()
+    local char = localPlayer.Character
+    if not char then return end
+
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+
+    local anim = Instance.new("Animation")
+    anim.AnimationId = "rbxassetid://507771019" -- idle pose (works well for holding)
+    armTrack = humanoid:LoadAnimation(anim)
+    armTrack:Play()
+    armTrack:AdjustSpeed(0) -- freeze pose
+end
+
+local function resetArm()
+    if armTrack then
+        armTrack:Stop()
+        armTrack = nil
+    end
+end
+
+------------------------------------------------
+-- HOOK INTO MENU VISIBILITY
+------------------------------------------------
+
+frame:GetPropertyChangedSignal("Visible"):Connect(function()
+    if frame.Visible then
+        attachPhone()
+        moveArmForward()
+    else
+        detachPhone()
+        resetArm()
+    end
+end)
