@@ -1,4 +1,6 @@
 ------------------------------------------------
+-- PASSWORD LOCK ADDON (PLACE AT VERY TOP)
+-- PASSWORD LOCK (PLACE AT VERY TOP OF SCRIPT)
 -- PASSWORD LOCK (PLACE AT VERY TOP)
 ------------------------------------------------
 
@@ -6,17 +8,33 @@ local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "PasswordGate"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- EDIT YOUR PASSWORD HERE
 -- EDIT THIS PASSWORD
 local PASSWORD = "ethan123"
 
+-- Freeze script until unlocked
+-- Global lock flag
 _G.ScriptUnlocked = false
 
 ------------------------------------------------
+-- UI WINDOW
+-- PASSWORD UI (THEMED LIKE YOUR MENUS)
 -- PASSWORD UI (THEMED)
 ------------------------------------------------
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 350, 0, 180)
+frame.Position = UDim2.new(0.5, -175, 0.5, -90)
+frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+frame.BackgroundTransparency = 0.1
+frame.Parent = gui
 
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 local pwGui = Instance.new("ScreenGui")
 pwGui.Name = "PasswordLock"
 pwGui.ResetOnSpawn = false
@@ -34,6 +52,7 @@ pwFrame.Parent = pwGui
 
 Instance.new("UICorner", pwFrame).CornerRadius = UDim.new(0, 10)
 
+-- Top bar
 local top = Instance.new("Frame")
 top.Size = UDim2.new(1, 0, 0, 35)
 top.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
@@ -43,16 +62,21 @@ top.Parent = pwFrame
 Instance.new("UICorner", top).CornerRadius = UDim.new(0, 10)
 
 local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
 title.Size = UDim2.new(1, 0, 1, 0)
 title.BackgroundTransparency = 1
 title.Text = "ENTER PASSWORD"
 title.Font = Enum.Font.GothamBold
+title.TextSize = 20
 title.TextSize = 18
 title.TextColor3 = Color3.fromRGB(0, 255, 255)
+title.Parent = frame
 title.Parent = top
 
+-- Password box
 local box = Instance.new("TextBox")
 box.Size = UDim2.new(0.9, 0, 0, 40)
+box.Position = UDim2.new(0.05, 0, 0, 60)
 box.Position = UDim2.new(0.05, 0, 0, 70)
 box.PlaceholderText = "Password..."
 box.Text = ""
@@ -60,38 +84,47 @@ box.TextColor3 = Color3.fromRGB(255,255,255)
 box.BackgroundColor3 = Color3.fromRGB(30,30,40)
 box.Font = Enum.Font.Gotham
 box.TextSize = 16
+box.Parent = frame
 box.Parent = pwFrame
 
 Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
 
+-- Unlock button
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0.9, 0, 0, 40)
+button.Position = UDim2.new(0.05, 0, 0, 115)
 button.Position = UDim2.new(0.05, 0, 0, 125)
 button.Text = "Unlock"
 button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 button.TextColor3 = Color3.fromRGB(0,0,0)
 button.Font = Enum.Font.GothamBold
 button.TextSize = 16
+button.Parent = frame
 button.Parent = pwFrame
 
 Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
 
+-- Wrong password label
 local wrong = Instance.new("TextLabel")
 wrong.Size = UDim2.new(1, 0, 0, 20)
+wrong.Position = UDim2.new(0, 0, 0, 155)
 wrong.Position = UDim2.new(0, 0, 0, 170)
 wrong.BackgroundTransparency = 1
 wrong.Text = ""
 wrong.Font = Enum.Font.GothamBold
 wrong.TextSize = 14
 wrong.TextColor3 = Color3.fromRGB(255, 80, 80)
+wrong.Parent = frame
 wrong.Parent = pwFrame
 
 ------------------------------------------------
 -- CHECK PASSWORD
+-- PASSWORD CHECK
 ------------------------------------------------
 local function tryUnlock()
     if box.Text == PASSWORD then
         _G.ScriptUnlocked = true
+        gui:Destroy()
         pwGui:Destroy()
     else
         wrong.Text = "Incorrect password"
@@ -110,13 +143,16 @@ box.FocusLost:Connect(function(enterPressed)
 end)
 
 ------------------------------------------------
+-- BLOCK SCRIPT UNTIL UNLOCKED
 -- BLOCK ENTIRE SCRIPT UNTIL UNLOCKED
 ------------------------------------------------
 while not _G.ScriptUnlocked do
     task.wait()
 end
 
+-- Script continues normally after this point
 ------------------------------------------------
+
 -- SCRIPT CONTINUES BELOW THIS POINT
 ------------------------------------------------
 
@@ -1314,17 +1350,9 @@ end)
 UIS.InputBegan:Connect(function(input, processed)
     if processed then return end
 
-if input.KeyCode == Enum.KeyCode.F8 then
-    frame.Visible = not frame.Visible
-
-    if frame.Visible then
-        attachPhone()
-        armTrack = moveArmForward()
-    else
-        detachPhone()
-        if armTrack then armTrack:Stop() end
+    if input.KeyCode == Enum.KeyCode.F8 then
+        frame.Visible = not frame.Visible
     end
-end
 
     if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
         local char = localPlayer.Character
@@ -1352,60 +1380,3 @@ end
         end
     end
 end)
-------------------------------------------------
--- PHONE MODEL (CLIENT-SIDE ONLY)
-------------------------------------------------
-
-local phone = Instance.new("Part")
-phone.Size = Vector3.new(0.3, 0.6, 0.05)
-phone.Color = Color3.fromRGB(20, 20, 20)
-phone.Material = Enum.Material.SmoothPlastic
-phone.Anchored = false
-phone.CanCollide = false
-phone.Name = "DebugPhone"
-phone.Parent = workspace
-
-local weld = Instance.new("Weld")
-weld.Part0 = phone
-------------------------------------------------
--- PHONE HOLDING ANIMATION
-------------------------------------------------
-
-local function attachPhone()
-    local char = localPlayer.Character
-    if not char then return end
-
-    local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
-    if not rightHand then return end
-
-    weld.Part1 = rightHand
-    weld.Parent = phone
-
-    -- Position relative to hand
-    phone.CFrame = rightHand.CFrame * CFrame.new(0, -0.5, -0.2) * CFrame.Angles(0, math.rad(90), 0)
-end
-
-local function detachPhone()
-    weld.Part1 = nil
-    phone.Parent = workspace
-    phone.CFrame = CFrame.new(9999, 9999, 9999) -- hide it
-end
-------------------------------------------------
--- ARM POSE (LOCAL ONLY)
-------------------------------------------------
-
-local function moveArmForward()
-    local char = localPlayer.Character
-    if not char then return end
-
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    -- Load a simple animation
-    local anim = Instance.new("Animation")
-    anim.AnimationId = "rbxassetid://507771019" -- idle arm pose (works well for holding)
-    local track = humanoid:LoadAnimation(anim)
-    track:Play()
-    track:AdjustSpeed(0) -- freeze pose
-    return track
-end
