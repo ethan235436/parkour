@@ -1381,13 +1381,20 @@ UIS.InputBegan:Connect(function(input, processed)
     end
 end)
 ------------------------------------------------
--- ADDON: PHONE + ARM POSE WHEN DEBUG MENU OPENS
+-- UNIVERSAL ADDON: PHONE + ARM POSE (R6 + R15)
 ------------------------------------------------
 
 local char = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
 
 ------------------------------------------------
--- CREATE PHONE (CLIENT-SIDE ONLY)
+-- DETECT RIG TYPE
+------------------------------------------------
+
+local isR15 = humanoid.RigType == Enum.HumanoidRigType.R15
+
+------------------------------------------------
+-- CREATE PHONE (CLIENT-SIDE)
 ------------------------------------------------
 
 local phone = Instance.new("Part")
@@ -1410,7 +1417,14 @@ local function attachPhone()
     local char = localPlayer.Character
     if not char then return end
 
-    local hand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
+    local hand
+
+    if isR15 then
+        hand = char:FindFirstChild("RightHand")
+    else
+        hand = char:FindFirstChild("Right Arm")
+    end
+
     if not hand then return end
 
     weld.Part1 = hand
@@ -1423,11 +1437,11 @@ end
 
 local function detachPhone()
     weld.Part1 = nil
-    phone.CFrame = CFrame.new(9999, 9999, 9999) -- hide it
+    phone.CFrame = CFrame.new(9999, 9999, 9999)
 end
 
 ------------------------------------------------
--- ARM POSE ANIMATION
+-- ARM POSE (R6 + R15)
 ------------------------------------------------
 
 local armTrack = nil
@@ -1436,20 +1450,35 @@ local function moveArmForward()
     local char = localPlayer.Character
     if not char then return end
 
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    local anim = Instance.new("Animation")
-    anim.AnimationId = "rbxassetid://507771019" -- idle pose (works well for holding)
-    armTrack = humanoid:LoadAnimation(anim)
-    armTrack:Play()
-    armTrack:AdjustSpeed(0) -- freeze pose
+    if isR15 then
+        -- R15 uses animation
+        local anim = Instance.new("Animation")
+        anim.AnimationId = "rbxassetid://507771019"
+        armTrack = humanoid:LoadAnimation(anim)
+        armTrack:Play()
+        armTrack:AdjustSpeed(0)
+    else
+        -- R6 uses joint manipulation
+        local rightArm = char:FindFirstChild("Right Arm")
+        if rightArm then
+            rightArm.LocalTransparencyModifier = 0 -- ensure visible
+            rightArm.CFrame = rightArm.CFrame * CFrame.Angles(math.rad(-20), 0, 0)
+        end
+    end
 end
 
 local function resetArm()
-    if armTrack then
-        armTrack:Stop()
-        armTrack = nil
+    if isR15 then
+        if armTrack then
+            armTrack:Stop()
+            armTrack = nil
+        end
+    else
+        local rightArm = char:FindFirstChild("Right Arm")
+        if rightArm then
+            -- reset pose by refreshing character joint
+            char:BreakJoints()
+        end
     end
 end
 
