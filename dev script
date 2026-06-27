@@ -1,5 +1,5 @@
 ------------------------------------------------
--- PASSWORD LOCK (PLACE AT VERY TOP OF SCRIPT)
+-- PASSWORD LOCK (PLACE AT VERY TOP)
 ------------------------------------------------
 
 local Players = game:GetService("Players")
@@ -11,16 +11,16 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- EDIT THIS PASSWORD
 local PASSWORD = "ethan123"
 
--- Global lock flag
 _G.ScriptUnlocked = false
 
 ------------------------------------------------
--- PASSWORD UI (THEMED LIKE YOUR MENUS)
+-- PASSWORD UI (THEMED)
 ------------------------------------------------
 
 local pwGui = Instance.new("ScreenGui")
 pwGui.Name = "PasswordLock"
 pwGui.ResetOnSpawn = false
+pwGui.DisplayOrder = 999999 -- ALWAYS ON TOP
 pwGui.Parent = playerGui
 
 local pwFrame = Instance.new("Frame")
@@ -34,7 +34,6 @@ pwFrame.Parent = pwGui
 
 Instance.new("UICorner", pwFrame).CornerRadius = UDim.new(0, 10)
 
--- Top bar
 local top = Instance.new("Frame")
 top.Size = UDim2.new(1, 0, 0, 35)
 top.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
@@ -52,7 +51,6 @@ title.TextSize = 18
 title.TextColor3 = Color3.fromRGB(0, 255, 255)
 title.Parent = top
 
--- Password box
 local box = Instance.new("TextBox")
 box.Size = UDim2.new(0.9, 0, 0, 40)
 box.Position = UDim2.new(0.05, 0, 0, 70)
@@ -66,7 +64,6 @@ box.Parent = pwFrame
 
 Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
 
--- Unlock button
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0.9, 0, 0, 40)
 button.Position = UDim2.new(0.05, 0, 0, 125)
@@ -79,7 +76,6 @@ button.Parent = pwFrame
 
 Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
 
--- Wrong password label
 local wrong = Instance.new("TextLabel")
 wrong.Size = UDim2.new(1, 0, 0, 20)
 wrong.Position = UDim2.new(0, 0, 0, 170)
@@ -91,7 +87,7 @@ wrong.TextColor3 = Color3.fromRGB(255, 80, 80)
 wrong.Parent = pwFrame
 
 ------------------------------------------------
--- PASSWORD CHECK
+-- CHECK PASSWORD
 ------------------------------------------------
 local function tryUnlock()
     if box.Text == PASSWORD then
@@ -114,13 +110,14 @@ box.FocusLost:Connect(function(enterPressed)
 end)
 
 ------------------------------------------------
--- BLOCK SCRIPT UNTIL UNLOCKED
+-- BLOCK ENTIRE SCRIPT UNTIL UNLOCKED
 ------------------------------------------------
 while not _G.ScriptUnlocked do
     task.wait()
 end
 
--- Script continues normally after this point
+------------------------------------------------
+-- SCRIPT CONTINUES BELOW THIS POINT
 ------------------------------------------------
 
 
