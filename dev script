@@ -1381,17 +1381,11 @@ UIS.InputBegan:Connect(function(input, processed)
     end
 end)
 ------------------------------------------------
--- ADDON: FALL OVER BUTTON + Q KEY RAGDOLL
+-- ADDON: FALL OVER BUTTON + DURATION SLIDER
 ------------------------------------------------
 
--- Make menu bigger to fit new button
-frame.Size = UDim2.new(0, 420, 0, 380)
-
-------------------------------------------------
--- BUTTON UI
-------------------------------------------------
-
-local qFallEnabled = false -- OFF BY DEFAULT
+-- Make menu bigger to fit new UI
+frame.Size = UDim2.new(0, 420, 0, 450)
 
 ------------------------------------------------
 -- FALL DURATION SLIDER (1–100 seconds)
@@ -1401,7 +1395,7 @@ local fallDuration = 5 -- default
 
 local fallSliderFrame = Instance.new("Frame")
 fallSliderFrame.Size = UDim2.new(0.9, 0, 0, 60)
-fallSliderFrame.Position = UDim2.new(0.05, 0, 0, 300)
+fallSliderFrame.Position = UDim2.new(0.05, 0, 0, 260)
 fallSliderFrame.BackgroundTransparency = 1
 fallSliderFrame.Parent = frame
 
@@ -1453,9 +1447,15 @@ UIS.InputChanged:Connect(function(input)
     end
 end)
 
+------------------------------------------------
+-- Q FALL TOGGLE BUTTON
+------------------------------------------------
+
+local qFallEnabled = false -- OFF BY DEFAULT
+
 local fallBtn = Instance.new("TextButton")
 fallBtn.Size = UDim2.new(0.9, 0, 0, 35)
-fallBtn.Position = UDim2.new(0.05, 0, 0, 260)
+fallBtn.Position = UDim2.new(0.05, 0, 0, 330)
 fallBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 fallBtn.TextColor3 = Color3.fromRGB(255, 200, 200)
 fallBtn.Font = Enum.Font.GothamBold
@@ -1470,28 +1470,25 @@ fallBtn.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------
--- RAGDOLL FUNCTION (CLIENT-SIDE)
+-- RAGDOLL FUNCTION USING SLIDER VALUE
 ------------------------------------------------
 
-local function ragdollFor5()
+local function ragdollForDuration()
     local char = localPlayer.Character
     if not char then return end
 
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
-    -- Force ragdoll state
     humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 
-    -- Add a tiny impulse so it looks natural
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if hrp then
         hrp.AssemblyLinearVelocity += Vector3.new(0, 2, 0)
     end
 
-    task.wait(5)
+    task.wait(fallDuration)
 
-    -- Restore normal movement
     if humanoid then
         humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
     end
@@ -1503,9 +1500,9 @@ end
 
 UIS.InputBegan:Connect(function(input, processed)
     if processed then return end
-    if not qFallEnabled then return end -- stays OFF unless toggled
+    if not qFallEnabled then return end
 
     if input.KeyCode == Enum.KeyCode.Q then
-        ragdollFor5()
+        ragdollForDuration()
     end
 end)
