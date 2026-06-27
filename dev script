@@ -1393,6 +1393,66 @@ frame.Size = UDim2.new(0, 420, 0, 380)
 
 local qFallEnabled = false -- OFF BY DEFAULT
 
+------------------------------------------------
+-- FALL DURATION SLIDER (1–100 seconds)
+------------------------------------------------
+
+local fallDuration = 5 -- default
+
+local fallSliderFrame = Instance.new("Frame")
+fallSliderFrame.Size = UDim2.new(0.9, 0, 0, 60)
+fallSliderFrame.Position = UDim2.new(0.05, 0, 0, 300)
+fallSliderFrame.BackgroundTransparency = 1
+fallSliderFrame.Parent = frame
+
+local fallSliderBar = Instance.new("Frame")
+fallSliderBar.Size = UDim2.new(1, 0, 0, 6)
+fallSliderBar.Position = UDim2.new(0, 0, 0, 10)
+fallSliderBar.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+fallSliderBar.Parent = fallSliderFrame
+Instance.new("UICorner", fallSliderBar).CornerRadius = UDim.new(0, 3)
+
+local fallKnob = Instance.new("Frame")
+fallKnob.Size = UDim2.new(0, 18, 0, 18)
+fallKnob.Position = UDim2.new(fallDuration/100, -9, 0, 1)
+fallKnob.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+fallKnob.Parent = fallSliderFrame
+Instance.new("UICorner", fallKnob).CornerRadius = UDim.new(1, 0)
+
+local fallLabel = Instance.new("TextLabel")
+fallLabel.Size = UDim2.new(1, 0, 0, 20)
+fallLabel.Position = UDim2.new(0, 0, 0, 30)
+fallLabel.BackgroundTransparency = 1
+fallLabel.Text = "Fall Duration: " .. fallDuration .. "s"
+fallLabel.Font = Enum.Font.GothamBold
+fallLabel.TextSize = 14
+fallLabel.TextColor3 = Color3.fromRGB(255, 150, 150)
+fallLabel.Parent = fallSliderFrame
+
+local draggingFallSlider = false
+
+fallKnob.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingFallSlider = true
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingFallSlider = false
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if draggingFallSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local relX = math.clamp((input.Position.X - fallSliderBar.AbsolutePosition.X) / fallSliderBar.AbsoluteSize.X, 0, 1)
+        fallDuration = math.floor(relX * 100)
+
+        fallKnob.Position = UDim2.new(relX, -9, 0, 1)
+        fallLabel.Text = "Fall Duration: " .. fallDuration .. "s"
+    end
+end)
+
 local fallBtn = Instance.new("TextButton")
 fallBtn.Size = UDim2.new(0.9, 0, 0, 35)
 fallBtn.Position = UDim2.new(0.05, 0, 0, 260)
