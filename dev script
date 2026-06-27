@@ -1,3 +1,111 @@
+------------------------------------------------
+-- PASSWORD LOCK ADDON (PLACE AT VERY TOP)
+------------------------------------------------
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "PasswordGate"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- EDIT YOUR PASSWORD HERE
+local PASSWORD = "ethan123"
+
+-- Freeze script until unlocked
+_G.ScriptUnlocked = false
+
+------------------------------------------------
+-- UI WINDOW
+------------------------------------------------
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 350, 0, 180)
+frame.Position = UDim2.new(0.5, -175, 0.5, -90)
+frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+frame.BackgroundTransparency = 0.1
+frame.Parent = gui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "ENTER PASSWORD"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.fromRGB(0, 255, 255)
+title.Parent = frame
+
+local box = Instance.new("TextBox")
+box.Size = UDim2.new(0.9, 0, 0, 40)
+box.Position = UDim2.new(0.05, 0, 0, 60)
+box.PlaceholderText = "Password..."
+box.Text = ""
+box.TextColor3 = Color3.fromRGB(255,255,255)
+box.BackgroundColor3 = Color3.fromRGB(30,30,40)
+box.Font = Enum.Font.Gotham
+box.TextSize = 16
+box.Parent = frame
+
+Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0.9, 0, 0, 40)
+button.Position = UDim2.new(0.05, 0, 0, 115)
+button.Text = "Unlock"
+button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+button.TextColor3 = Color3.fromRGB(0,0,0)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 16
+button.Parent = frame
+
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+
+local wrong = Instance.new("TextLabel")
+wrong.Size = UDim2.new(1, 0, 0, 20)
+wrong.Position = UDim2.new(0, 0, 0, 155)
+wrong.BackgroundTransparency = 1
+wrong.Text = ""
+wrong.Font = Enum.Font.GothamBold
+wrong.TextSize = 14
+wrong.TextColor3 = Color3.fromRGB(255, 80, 80)
+wrong.Parent = frame
+
+------------------------------------------------
+-- CHECK PASSWORD
+------------------------------------------------
+local function tryUnlock()
+    if box.Text == PASSWORD then
+        _G.ScriptUnlocked = true
+        gui:Destroy()
+    else
+        wrong.Text = "Incorrect password"
+        task.delay(1.5, function()
+            wrong.Text = ""
+        end)
+    end
+end
+
+button.MouseButton1Click:Connect(tryUnlock)
+
+box.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        tryUnlock()
+    end
+end)
+
+------------------------------------------------
+-- BLOCK SCRIPT UNTIL UNLOCKED
+------------------------------------------------
+while not _G.ScriptUnlocked do
+    task.wait()
+end
+
+-- Script continues normally after this point
+------------------------------------------------
+
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
