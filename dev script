@@ -1,4 +1,5 @@
 ------------------------------------------------
+-- PASSWORD LOCK (PLACE AT VERY TOP OF SCRIPT)
 -- PASSWORD LOCK (PLACE AT VERY TOP)
 ------------------------------------------------
 
@@ -11,10 +12,11 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- EDIT THIS PASSWORD
 local PASSWORD = "ethan123"
 
+-- Global lock flag
 _G.ScriptUnlocked = false
-_G.ScriptKilled = false
 
 ------------------------------------------------
+-- PASSWORD UI (THEMED LIKE YOUR MENUS)
 -- PASSWORD UI (THEMED)
 ------------------------------------------------
 
@@ -35,6 +37,7 @@ pwFrame.Parent = pwGui
 
 Instance.new("UICorner", pwFrame).CornerRadius = UDim.new(0, 10)
 
+-- Top bar
 local top = Instance.new("Frame")
 top.Size = UDim2.new(1, 0, 0, 35)
 top.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
@@ -47,29 +50,12 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 1, 0)
 title.BackgroundTransparency = 1
 title.Text = "ENTER PASSWORD"
--- X BUTTON (KILL SCRIPT)
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 35, 0, 35)
-closeBtn.Position = UDim2.new(1, -35, 0, 0)
-closeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 18
-closeBtn.Parent = top
-
-Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
-
-closeBtn.MouseButton1Click:Connect(function()
-    _G.ScriptKilled = true
-    pwGui:Destroy()
-end)
-
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.TextColor3 = Color3.fromRGB(0, 255, 255)
 title.Parent = top
 
+-- Password box
 local box = Instance.new("TextBox")
 box.Size = UDim2.new(0.9, 0, 0, 40)
 box.Position = UDim2.new(0.05, 0, 0, 70)
@@ -83,6 +69,7 @@ box.Parent = pwFrame
 
 Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
 
+-- Unlock button
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0.9, 0, 0, 40)
 button.Position = UDim2.new(0.05, 0, 0, 125)
@@ -95,6 +82,7 @@ button.Parent = pwFrame
 
 Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
 
+-- Wrong password label
 local wrong = Instance.new("TextLabel")
 wrong.Size = UDim2.new(1, 0, 0, 20)
 wrong.Position = UDim2.new(0, 0, 0, 170)
@@ -106,6 +94,7 @@ wrong.TextColor3 = Color3.fromRGB(255, 80, 80)
 wrong.Parent = pwFrame
 
 ------------------------------------------------
+-- PASSWORD CHECK
 -- CHECK PASSWORD
 ------------------------------------------------
 local function tryUnlock()
@@ -129,14 +118,14 @@ box.FocusLost:Connect(function(enterPressed)
 end)
 
 ------------------------------------------------
+-- BLOCK SCRIPT UNTIL UNLOCKED
 -- BLOCK ENTIRE SCRIPT UNTIL UNLOCKED
 ------------------------------------------------
-while not _G.ScriptUnlocked and not _G.ScriptKilled do
+while not _G.ScriptUnlocked do
     task.wait()
 end
 
-if _G.ScriptKilled then return end
-
+-- Script continues normally after this point
 ------------------------------------------------
 -- SCRIPT CONTINUES BELOW THIS POINT
 ------------------------------------------------
