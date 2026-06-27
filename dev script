@@ -1381,117 +1381,71 @@ UIS.InputBegan:Connect(function(input, processed)
     end
 end)
 ------------------------------------------------
--- UNIVERSAL ADDON: PHONE + ARM POSE (R6 + R15)
+-- ADDON: FALL OVER BUTTON + Q KEY RAGDOLL
 ------------------------------------------------
 
-local char = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-local humanoid = char:WaitForChild("Humanoid")
+-- Make menu bigger to fit new button
+frame.Size = UDim2.new(0, 420, 0, 380)
 
 ------------------------------------------------
--- DETECT RIG TYPE
+-- BUTTON UI
 ------------------------------------------------
 
-local isR15 = humanoid.RigType == Enum.HumanoidRigType.R15
+local qFallEnabled = false -- OFF BY DEFAULT
+
+local fallBtn = Instance.new("TextButton")
+fallBtn.Size = UDim2.new(0.9, 0, 0, 35)
+fallBtn.Position = UDim2.new(0.05, 0, 0, 260)
+fallBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+fallBtn.TextColor3 = Color3.fromRGB(255, 200, 200)
+fallBtn.Font = Enum.Font.GothamBold
+fallBtn.TextSize = 14
+fallBtn.Text = "Q Fall Over: OFF"
+fallBtn.Parent = frame
+Instance.new("UICorner", fallBtn)
+
+fallBtn.MouseButton1Click:Connect(function()
+    qFallEnabled = not qFallEnabled
+    fallBtn.Text = "Q Fall Over: " .. (qFallEnabled and "ON" or "OFF")
+end)
 
 ------------------------------------------------
--- CREATE PHONE (CLIENT-SIDE)
+-- RAGDOLL FUNCTION (CLIENT-SIDE)
 ------------------------------------------------
 
-local phone = Instance.new("Part")
-phone.Size = Vector3.new(0.3, 0.6, 0.05)
-phone.Color = Color3.fromRGB(20, 20, 20)
-phone.Material = Enum.Material.SmoothPlastic
-phone.CanCollide = false
-phone.Anchored = false
-phone.Name = "DebugPhone"
-phone.Parent = workspace
-
-local weld = Instance.new("Weld")
-weld.Part0 = phone
-
-------------------------------------------------
--- ATTACH / DETACH PHONE
-------------------------------------------------
-
-local function attachPhone()
+local function ragdollFor5()
     local char = localPlayer.Character
     if not char then return end
 
-    local hand
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
 
-    if isR15 then
-        hand = char:FindFirstChild("RightHand")
-    else
-        hand = char:FindFirstChild("Right Arm")
+    -- Force ragdoll state
+    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+
+    -- Add a tiny impulse so it looks natural
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.AssemblyLinearVelocity += Vector3.new(0, 2, 0)
     end
 
-    if not hand then return end
+    task.wait(5)
 
-    weld.Part1 = hand
-    weld.Parent = phone
-
-    phone.CFrame = hand.CFrame
-        * CFrame.new(0, -0.5, -0.2)
-        * CFrame.Angles(0, math.rad(90), 0)
-end
-
-local function detachPhone()
-    weld.Part1 = nil
-    phone.CFrame = CFrame.new(9999, 9999, 9999)
-end
-
-------------------------------------------------
--- ARM POSE (R6 + R15)
-------------------------------------------------
-
-local armTrack = nil
-
-local function moveArmForward()
-    local char = localPlayer.Character
-    if not char then return end
-
-    if isR15 then
-        -- R15 uses animation
-        local anim = Instance.new("Animation")
-        anim.AnimationId = "rbxassetid://507771019"
-        armTrack = humanoid:LoadAnimation(anim)
-        armTrack:Play()
-        armTrack:AdjustSpeed(0)
-    else
-        -- R6 uses joint manipulation
-        local rightArm = char:FindFirstChild("Right Arm")
-        if rightArm then
-            rightArm.LocalTransparencyModifier = 0 -- ensure visible
-            rightArm.CFrame = rightArm.CFrame * CFrame.Angles(math.rad(-20), 0, 0)
-        end
-    end
-end
-
-local function resetArm()
-    if isR15 then
-        if armTrack then
-            armTrack:Stop()
-            armTrack = nil
-        end
-    else
-        local rightArm = char:FindFirstChild("Right Arm")
-        if rightArm then
-            -- reset pose by refreshing character joint
-            char:BreakJoints()
-        end
+    -- Restore normal movement
+    if humanoid then
+        humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
     end
 end
 
 ------------------------------------------------
--- HOOK INTO MENU VISIBILITY
+-- Q KEY LISTENER
 ------------------------------------------------
 
-frame:GetPropertyChangedSignal("Visible"):Connect(function()
-    if frame.Visible then
-        attachPhone()
-        moveArmForward()
-    else
-        detachPhone()
-        resetArm()
+UIS.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if not qFallEnabled then return end -- stays OFF unless toggled
+
+    if input.KeyCode == Enum.KeyCode.Q then
+        ragdollFor5()
     end
 end)
