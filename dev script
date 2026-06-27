@@ -1384,8 +1384,8 @@ end)
 -- ADDON: FALL OVER BUTTON + DURATION SLIDER
 ------------------------------------------------
 
--- Make menu bigger to fit new UI
-frame.Size = UDim2.new(0, 420, 0, 450)
+-- Expand menu to fit new UI
+frame.Size = UDim2.new(0, 420, 0, 500)
 
 ------------------------------------------------
 -- FALL DURATION SLIDER (1–100 seconds)
