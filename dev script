@@ -1506,3 +1506,91 @@ UIS.InputBegan:Connect(function(input, processed)
         ragdollForDuration()
     end
 end)
+------------------------------------------------
+-- PLAYER ESP FLASH (Z)
+------------------------------------------------
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+
+local ESP_DURATION = 1.6
+local FADE_TIME = 0.25
+
+local function flashESP()
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player and plr.Character then
+
+			local existing = plr.Character:FindFirstChild("FlashESP")
+			if existing then
+				existing:Destroy()
+			end
+
+			local highlight = Instance.new("Highlight")
+			highlight.Name = "FlashESP"
+			highlight.Adornee = plr.Character
+			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+
+			-- subtle cyan like the rest of your UI
+			highlight.FillColor = Color3.fromRGB(0, 220, 255)
+			highlight.OutlineColor = Color3.fromRGB(150, 245, 255)
+
+			highlight.FillTransparency = 1
+			highlight.OutlineTransparency = 1
+
+			highlight.Parent = plr.Character
+
+			-- fade in
+			TweenService:Create(
+				highlight,
+				TweenInfo.new(
+					FADE_TIME,
+					Enum.EasingStyle.Quad,
+					Enum.EasingDirection.Out
+				),
+				{
+					FillTransparency = 0.75,
+					OutlineTransparency = 0.15
+				}
+			):Play()
+
+			task.spawn(function()
+				task.wait(ESP_DURATION)
+
+				local fade = TweenService:Create(
+					highlight,
+					TweenInfo.new(
+						0.35,
+						Enum.EasingStyle.Quad,
+						Enum.EasingDirection.In
+					),
+					{
+						FillTransparency = 1,
+						OutlineTransparency = 1
+					}
+				)
+
+				fade:Play()
+				fade.Completed:Wait()
+
+				if highlight then
+					highlight:Destroy()
+				end
+			end)
+		end
+	end
+
+	if addLog then
+		addLog("ESP Flash")
+	end
+end
+
+UIS.InputBegan:Connect(function(input, processed)
+	if processed or scriptKilled then
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.Z then
+		flashESP()
+	end
+end)
