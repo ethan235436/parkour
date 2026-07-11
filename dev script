@@ -1666,29 +1666,55 @@ end)
 
 
 ------------------------------------------------
--- CLICK PLAYER WHILE Z HELD
+-- CLICK PLAYER THROUGH WALLS WHILE Z HELD
 ------------------------------------------------
+
+local camera = workspace.CurrentCamera
+
+local function getPlayerUnderCursor()
+	local closestPlayer = nil
+	local closestDistance = math.huge
+
+	local mousePosition = UIS:GetMouseLocation()
+
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player and plr.Character then
+
+			local root = plr.Character:FindFirstChild("HumanoidRootPart")
+
+			if root then
+				local screenPosition, onScreen = camera:WorldToViewportPoint(root.Position)
+
+				if onScreen then
+					local distance = (
+						Vector2.new(screenPosition.X, screenPosition.Y)
+						- Vector2.new(mousePosition.X, mousePosition.Y)
+					).Magnitude
+
+					if distance < closestDistance and distance < 120 then
+						closestDistance = distance
+						closestPlayer = plr
+					end
+				end
+			end
+		end
+	end
+
+	return closestPlayer
+end
+
 
 mouse.Button1Down:Connect(function()
 	if not zHeld then
 		return
 	end
 
-	local target = mouse.Target
+	local targetPlayer = getPlayerUnderCursor()
 
-	if target then
-		local character = target:FindFirstAncestorOfClass("Model")
-
-		if character then
-			local plr = Players:GetPlayerFromCharacter(character)
-
-			if plr then
-				toggleTracker(plr)
-			end
-		end
+	if targetPlayer then
+		toggleTracker(targetPlayer)
 	end
 end)
-
 
 ------------------------------------------------
 -- Z HOLD DETECTION
