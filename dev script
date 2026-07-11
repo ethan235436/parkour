@@ -16,7 +16,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 -- EDIT YOUR PASSWORD HERE
 -- EDIT THIS PASSWORD
-local PASSWORD = "ethan123"
+local PASSWORD = "123ethan"
 
 -- Freeze script until unlocked
 -- Global lock flag
