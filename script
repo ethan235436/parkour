@@ -971,3 +971,468 @@ UIS.InputBegan:Connect(function(input, processed)
 		frame.Visible = not frame.Visible
 	end
 end)
+------------------------------------------------
+-- DEBUG MENU (F8)
+------------------------------------------------
+
+local UIS = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+
+local localPlayer = Players.LocalPlayer
+local playerGui = localPlayer:WaitForChild("PlayerGui")
+
+------------------------------------------------
+-- STATE
+------------------------------------------------
+
+local eLaunchEnabled = false
+local launchPower = 50 -- default slider value (1–100)
+
+------------------------------------------------
+-- GUI
+------------------------------------------------
+
+local debugGui = Instance.new("ScreenGui")
+debugGui.Name = "DebugMenu"
+debugGui.ResetOnSpawn = false
+debugGui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 420, 0, 330)
+frame.Position = UDim2.new(0.5, -210, 0.5, -165)
+frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+frame.BackgroundTransparency = 0.1
+frame.Visible = false
+frame.Parent = debugGui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+------------------------------------------------
+-- TOP BAR (DRAG HANDLE)
+------------------------------------------------
+
+local top = Instance.new("Frame")
+top.Size = UDim2.new(1, 0, 0, 35)
+top.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+top.BorderSizePixel = 0
+top.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 1, 0)
+title.BackgroundTransparency = 1
+title.Text = "DEBUG MENU"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(0, 255, 255)
+title.Parent = top
+
+------------------------------------------------
+-- TOGGLE: E LAUNCH
+------------------------------------------------
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
+toggleBtn.Position = UDim2.new(0.05, 0, 0, 50)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+toggleBtn.TextColor3 = Color3.fromRGB(200, 255, 255)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 14
+toggleBtn.Text = "E Launch: OFF (Disabled)"
+toggleBtn.Parent = frame
+Instance.new("UICorner", toggleBtn)
+
+toggleBtn.MouseButton1Click:Connect(function()
+    eLaunchEnabled = not eLaunchEnabled
+    toggleBtn.Text = "E Launch: " .. (eLaunchEnabled and "ON" or "OFF")
+end)
+
+------------------------------------------------
+-- POWER SLIDER (1–100)
+------------------------------------------------
+
+local sliderFrame = Instance.new("Frame")
+sliderFrame.Size = UDim2.new(0.9, 0, 0, 60)
+sliderFrame.Position = UDim2.new(0.05, 0, 0, 95)
+sliderFrame.BackgroundTransparency = 1
+sliderFrame.Parent = frame
+
+local sliderBar = Instance.new("Frame")
+sliderBar.Size = UDim2.new(1, 0, 0, 6)
+sliderBar.Position = UDim2.new(0, 0, 0, 10)
+sliderBar.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+sliderBar.Parent = sliderFrame
+Instance.new("UICorner", sliderBar).CornerRadius = UDim.new(0, 3)
+
+local knob = Instance.new("Frame")
+knob.Size = UDim2.new(0, 18, 0, 18)
+knob.Position = UDim2.new(launchPower/100, -9, 0, 1)
+knob.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+knob.Parent = sliderFrame
+Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+
+local powerLabel = Instance.new("TextLabel")
+powerLabel.Size = UDim2.new(1, 0, 0, 20)
+powerLabel.Position = UDim2.new(0, 0, 0, 30)
+powerLabel.BackgroundTransparency = 1
+powerLabel.Text = "Power: " .. launchPower
+powerLabel.Font = Enum.Font.GothamBold
+powerLabel.TextSize = 14
+powerLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+powerLabel.Parent = sliderFrame
+
+local draggingSlider = false
+
+knob.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingSlider = true
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingSlider = false
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if draggingSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local relX = math.clamp((input.Position.X - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
+        launchPower = math.floor(relX * 100)
+
+        knob.Position = UDim2.new(relX, -9, 0, 1)
+        powerLabel.Text = "Power: " .. launchPower
+    end
+end)
+
+------------------------------------------------
+-- TELEPORT SYSTEM (USERNAME + DISPLAYNAME)
+------------------------------------------------
+
+local inputBox = Instance.new("TextBox")
+inputBox.Size = UDim2.new(0.9, 0, 0, 35)
+inputBox.Position = UDim2.new(0.05, 0, 0, 165)
+inputBox.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+inputBox.PlaceholderText = "Enter username..."
+inputBox.Font = Enum.Font.Code
+inputBox.TextSize = 14
+inputBox.Parent = frame
+Instance.new("UICorner", inputBox)
+
+local tpBtn = Instance.new("TextButton")
+tpBtn.Size = UDim2.new(0.9, 0, 0, 35)
+tpBtn.Position = UDim2.new(0.05, 0, 0, 210)
+tpBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+tpBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
+tpBtn.Font = Enum.Font.GothamBold
+tpBtn.TextSize = 14
+tpBtn.Text = "Teleport"
+tpBtn.Parent = frame
+Instance.new("UICorner", tpBtn)
+
+tpBtn.MouseButton1Click:Connect(function()
+    local targetName = inputBox.Text:lower()
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        local uname = plr.Name:lower()
+        local dname = plr.DisplayName:lower()
+
+        if uname:sub(1, #targetName) == targetName or dname:sub(1, #targetName) == targetName then
+            if plr.Character and localPlayer.Character then
+                local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local targetHRP = plr.Character:FindFirstChild("HumanoidRootPart")
+
+                if hrp and targetHRP then
+                    hrp.CFrame = targetHRP.CFrame + Vector3.new(2, 0, 0)
+                end
+            end
+            break
+        end
+    end
+end)
+
+------------------------------------------------
+-- DRAGGING
+------------------------------------------------
+
+local dragging = false
+local dragStart
+local startPos
+
+top.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+------------------------------------------------
+-- TOGGLE (F8) + VECTORFORCE E-LAUNCH WITH POWER
+------------------------------------------------
+
+UIS.InputBegan:Connect(function(input, processed)
+    if processed then return end
+
+    if input.KeyCode == Enum.KeyCode.F8 then
+        frame.Visible = not frame.Visible
+    end
+
+    if input.KeyCode == Enum.KeyCode.E and eLaunchEnabled then
+        local char = localPlayer.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+
+                local att = Instance.new("Attachment")
+                att.Parent = hrp
+
+                local vf = Instance.new("VectorForce")
+                vf.Attachment0 = att
+
+                -- MUCH STRONGER FORCE SCALING
+                local scaledForce = launchPower * 200 -- 1 = tiny hop, 100 = YEET
+                local scaledForce = launchPower * 600 -- 1 = tiny hop, 100 = YEET
+                vf.Force = Vector3.new(0, scaledForce, 0)
+
+                vf.RelativeTo = Enum.ActuatorRelativeTo.World
+                vf.Parent = hrp
+
+                game.Debris:AddItem(att, 0.15)
+                game.Debris:AddItem(vf, 0.15)
+            end
+        end
+    end
+end)
+------------------------------------------------
+-- ADDON: FALL OVER BUTTON + DURATION SLIDER
+------------------------------------------------
+
+-- Expand menu to fit new UI
+frame.Size = UDim2.new(0, 420, 0, 500)
+
+------------------------------------------------
+-- FALL DURATION SLIDER (1–100 seconds)
+------------------------------------------------
+
+local fallDuration = 5 -- default
+
+local fallSliderFrame = Instance.new("Frame")
+fallSliderFrame.Size = UDim2.new(0.9, 0, 0, 60)
+fallSliderFrame.Position = UDim2.new(0.05, 0, 0, 260)
+fallSliderFrame.BackgroundTransparency = 1
+fallSliderFrame.Parent = frame
+
+local fallSliderBar = Instance.new("Frame")
+fallSliderBar.Size = UDim2.new(1, 0, 0, 6)
+fallSliderBar.Position = UDim2.new(0, 0, 0, 10)
+fallSliderBar.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+fallSliderBar.Parent = fallSliderFrame
+Instance.new("UICorner", fallSliderBar).CornerRadius = UDim.new(0, 3)
+
+local fallKnob = Instance.new("Frame")
+fallKnob.Size = UDim2.new(0, 18, 0, 18)
+fallKnob.Position = UDim2.new(fallDuration/100, -9, 0, 1)
+fallKnob.BackgroundColor3 = Color3.fromRGB(255, 150, 150)
+fallKnob.Parent = fallSliderFrame
+Instance.new("UICorner", fallKnob).CornerRadius = UDim.new(1, 0)
+
+local fallLabel = Instance.new("TextLabel")
+fallLabel.Size = UDim2.new(1, 0, 0, 20)
+fallLabel.Position = UDim2.new(0, 0, 0, 30)
+fallLabel.BackgroundTransparency = 1
+fallLabel.Text = "Fall Duration: " .. fallDuration .. "s"
+fallLabel.Font = Enum.Font.GothamBold
+fallLabel.TextSize = 14
+fallLabel.TextColor3 = Color3.fromRGB(255, 150, 150)
+fallLabel.Parent = fallSliderFrame
+
+local draggingFallSlider = false
+
+fallKnob.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingFallSlider = true
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingFallSlider = false
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if draggingFallSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local relX = math.clamp((input.Position.X - fallSliderBar.AbsolutePosition.X) / fallSliderBar.AbsoluteSize.X, 0, 1)
+        fallDuration = math.floor(relX * 100)
+
+        fallKnob.Position = UDim2.new(relX, -9, 0, 1)
+        fallLabel.Text = "Fall Duration: " .. fallDuration .. "s"
+    end
+end)
+
+------------------------------------------------
+-- Q FALL TOGGLE BUTTON
+------------------------------------------------
+
+local qFallEnabled = false -- OFF BY DEFAULT
+
+local fallBtn = Instance.new("TextButton")
+fallBtn.Size = UDim2.new(0.9, 0, 0, 35)
+fallBtn.Position = UDim2.new(0.05, 0, 0, 330)
+fallBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+fallBtn.TextColor3 = Color3.fromRGB(255, 200, 200)
+fallBtn.Font = Enum.Font.GothamBold
+fallBtn.TextSize = 14
+fallBtn.Text = "Q Fall Over: OFF"
+fallBtn.Parent = frame
+Instance.new("UICorner", fallBtn)
+
+fallBtn.MouseButton1Click:Connect(function()
+    qFallEnabled = not qFallEnabled
+    fallBtn.Text = "Q Fall Over: " .. (qFallEnabled and "ON" or "OFF")
+end)
+
+------------------------------------------------
+-- RAGDOLL FUNCTION USING SLIDER VALUE
+------------------------------------------------
+
+local function ragdollForDuration()
+    local char = localPlayer.Character
+    if not char then return end
+
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+
+    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.AssemblyLinearVelocity += Vector3.new(0, 2, 0)
+    end
+
+    task.wait(fallDuration)
+
+    if humanoid then
+        humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+    end
+end
+
+------------------------------------------------
+-- Q KEY LISTENER
+------------------------------------------------
+
+UIS.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if not qFallEnabled then return end
+
+    if input.KeyCode == Enum.KeyCode.Q then
+        ragdollForDuration()
+    end
+end)
+------------------------------------------------
+-- PLAYER ESP FLASH (Z)
+------------------------------------------------
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+
+local ESP_DURATION = 1.6
+local FADE_TIME = 0.25
+
+local function flashESP()
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player and plr.Character then
+
+			local existing = plr.Character:FindFirstChild("FlashESP")
+			if existing then
+				existing:Destroy()
+			end
+
+			local highlight = Instance.new("Highlight")
+			highlight.Name = "FlashESP"
+			highlight.Adornee = plr.Character
+			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+
+			-- subtle cyan like the rest of your UI
+			highlight.FillColor = Color3.fromRGB(0, 220, 255)
+			highlight.OutlineColor = Color3.fromRGB(150, 245, 255)
+
+			highlight.FillTransparency = 1
+			highlight.OutlineTransparency = 1
+
+			highlight.Parent = plr.Character
+
+			-- fade in
+			TweenService:Create(
+				highlight,
+				TweenInfo.new(
+					FADE_TIME,
+					Enum.EasingStyle.Quad,
+					Enum.EasingDirection.Out
+				),
+				{
+					FillTransparency = 0.75,
+					OutlineTransparency = 0.15
+				}
+			):Play()
+
+			task.spawn(function()
+				task.wait(ESP_DURATION)
+
+				local fade = TweenService:Create(
+					highlight,
+					TweenInfo.new(
+						0.35,
+						Enum.EasingStyle.Quad,
+						Enum.EasingDirection.In
+					),
+					{
+						FillTransparency = 1,
+						OutlineTransparency = 1
+					}
+				)
+
+				fade:Play()
+				fade.Completed:Wait()
+
+				if highlight then
+					highlight:Destroy()
+				end
+			end)
+		end
+	end
+
+	if addLog then
+		addLog("ESP Flash")
+	end
+end
+
+UIS.InputBegan:Connect(function(input, processed)
+	if processed or scriptKilled then
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.Z then
+		flashESP()
+	end
+end)
