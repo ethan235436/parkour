@@ -1513,49 +1513,94 @@ end)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
+local VoiceChatService = game:GetService("VoiceChatService")
 
 local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+local mouse = player:GetMouse()
 
 local FADE_TIME = 0.25
 
 local zHeld = false
 local trackedPlayers = {}
+local friendCache = {} -- Cache friend status to avoid constant async calls
+
+------------------------------------------------
+-- CACHE FRIENDS
+------------------------------------------------
+
+local function cacheFriendStatus(plr)
+	if plr == player then return end
+	if friendCache[plr.UserId] ~= nil then return end
+
+	task.spawn(function()
+		local success, isFriend = pcall(function()
+			return player:IsFriendsWith(plr.UserId)
+		end)
+		if success then
+			friendCache[plr.UserId] = isFriend
+		else
+			friendCache[plr.UserId] = false
+		-- Default to false if API fails
+		end
+	end)
+end
+
+for _, plr in ipairs(Players:GetPlayers()) do
+	cacheFriendStatus(plr)
+end
+Players.PlayerAdded:Connect(cacheFriendStatus)
+
+------------------------------------------------
+-- COLOR RESOLVER
+------------------------------------------------
+
+local function getESPColors(plr)
+	-- 1. Voice Chat (Dark Blue)
+	local success, isTalking = pcall(function()
+		return VoiceChatService:IsPlayerTalking(plr)
+	end)
+	if success and isTalking then
+		return Color3.fromRGB(0, 30, 160), Color3.fromRGB(50, 100, 255)
+	end
+
+	-- 2. Friends (Light Green)
+	if friendCache[plr.UserId] == true then
+		return Color3.fromRGB(50, 220, 50), Color3.fromRGB(150, 255, 150)
+	end
+
+	-- 3. Default (Cyan)
+	return Color3.fromRGB(0, 220, 255), Color3.fromRGB(150, 245, 255)
+end
 
 ------------------------------------------------
 -- CREATE ESP
 ------------------------------------------------
 
 local function createESP(plr, permanent)
-
 	if not plr.Character then
 		return
 	end
 
-	local oldFlash = plr.Character:FindFirstChild("FlashESP")
-	local oldTrack = plr.Character:FindFirstChild("TrackedESP")
+	local existing = plr.Character:FindFirstChild("FlashESP") or plr.Character:FindFirstChild("TrackedESP")
 
-	if permanent and oldTrack then
-		oldTrack:Destroy()
-	elseif not permanent and oldFlash then
-		oldFlash:Destroy()
+	if existing then
+		existing:Destroy()
 	end
 
-
 	local highlight = Instance.new("Highlight")
-
 	highlight.Name = permanent and "TrackedESP" or "FlashESP"
 	highlight.Adornee = plr.Character
 	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 
-	highlight.FillColor = Color3.fromRGB(0,220,255)
-	highlight.OutlineColor = Color3.fromRGB(150,245,255)
+	-- Get customized colors
+	local fillColor, outlineColor = getESPColors(plr)
+	highlight.FillColor = fillColor
+	highlight.OutlineColor = outlineColor
 
 	highlight.FillTransparency = 1
 	highlight.OutlineTransparency = 1
 
 	highlight.Parent = plr.Character
-
 
 	TweenService:Create(
 		highlight,
@@ -1579,15 +1624,11 @@ end
 ------------------------------------------------
 
 local function removeFlashESP()
-
-	for _,plr in ipairs(Players:GetPlayers()) do
-
+	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr.Character then
-
 			local esp = plr.Character:FindFirstChild("FlashESP")
 
 			if esp then
-
 				local fade = TweenService:Create(
 					esp,
 					TweenInfo.new(
@@ -1603,12 +1644,11 @@ local function removeFlashESP()
 
 				fade:Play()
 
-				task.delay(0.3,function()
+				task.delay(0.3, function()
 					if esp then
 						esp:Destroy()
 					end
 				end)
-
 			end
 		end
 	end
@@ -1616,201 +1656,147 @@ end
 
 
 ------------------------------------------------
--- SHOW EVERYONE
+-- SHOW ALL WHILE HELD
 ------------------------------------------------
 
 local function showEveryone()
-
-	for _,plr in ipairs(Players:GetPlayers()) do
-
+	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= player and plr.Character then
-			createESP(plr,false)
+			-- Don't overwrite permanent trackers with temp ones
+			if not trackedPlayers[plr] then
+				createESP(plr, false)
+			end
 		end
-
 	end
-
 end
 
 
 ------------------------------------------------
--- TRACK TOGGLE
+-- TOGGLE TRACKER
 ------------------------------------------------
 
 local function toggleTracker(plr)
-
 	if not plr or plr == player then
 		return
 	end
 
-
 	if trackedPlayers[plr] then
-
 		trackedPlayers[plr] = nil
 
 		if plr.Character then
-
-			local esp = plr.Character:FindFirstChild("TrackedESP")
-
+			local esp = plr.Character:FindFirstChild("TrackedESP") or plr.Character:FindFirstChild("FlashESP")
 			if esp then
 				esp:Destroy()
 			end
-
 		end
 
 		if addLog then
-			addLog("Stopped tracking: "..plr.Name)
+			addLog("Removed tracker: "..plr.Name)
 		end
 
-
 	else
-
 		trackedPlayers[plr] = true
-
-		createESP(plr,true)
+		createESP(plr, true)
 
 		if addLog then
 			addLog("Tracking: "..plr.Name)
 		end
-
 	end
-
 end
 
 
 ------------------------------------------------
--- FIND PLAYER THROUGH WALLS
+-- KEEP TRACKERS AFTER RESPAWN
 ------------------------------------------------
 
-local function getPlayerFromCursor()
+Players.PlayerAdded:Connect(function(plr)
+	plr.CharacterAdded:Connect(function()
+		task.wait(1)
 
-	local closest = nil
-	local shortest = math.huge
+		if trackedPlayers[plr] then
+			createESP(plr, true)
+		end
+	end)
+end)
 
-	local mousePos = UIS:GetMouseLocation()
 
+------------------------------------------------
+-- CLICK PLAYER THROUGH WALLS WHILE Z HELD
+------------------------------------------------
 
-	for _,plr in ipairs(Players:GetPlayers()) do
+local camera = workspace.CurrentCamera
 
+local function getPlayerUnderCursor()
+	local closestPlayer = nil
+	local closestDistance = math.huge
+
+	local mousePosition = UIS:GetMouseLocation()
+
+	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= player and plr.Character then
 
 			local root = plr.Character:FindFirstChild("HumanoidRootPart")
 
 			if root then
+				local screenPosition, onScreen = camera:WorldToViewportPoint(root.Position)
 
-				local screenPos,visible = camera:WorldToViewportPoint(root.Position)
+				if onScreen then
+					local distance = (
+						Vector2.new(screenPosition.X, screenPosition.Y)
+						- Vector2.new(mousePosition.X, mousePosition.Y)
+					).Magnitude
 
-
-				if visible then
-
-					local distance =
-						(Vector2.new(screenPos.X,screenPos.Y)
-						-
-						Vector2.new(mousePos.X,mousePos.Y)).Magnitude
-
-
-					if distance < shortest and distance < 120 then
-
-						shortest = distance
-						closest = plr
-
+					if distance < closestDistance and distance < 120 then
+						closestDistance = distance
+						closestPlayer = plr
 					end
 				end
 			end
 		end
 	end
 
-
-	return closest
+	return closestPlayer
 end
 
 
-------------------------------------------------
--- CLICK THROUGH WALLS WHILE Z HELD
-------------------------------------------------
-
-UIS.InputBegan:Connect(function(input,processed)
-
-	if processed then
+mouse.Button1Down:Connect(function()
+	if not zHeld then
 		return
 	end
 
+	local targetPlayer = getPlayerUnderCursor()
 
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-
-		if zHeld then
-
-			local target = getPlayerFromCursor()
-
-			if target then
-				toggleTracker(target)
-			end
-
-		end
-
+	if targetPlayer then
+		toggleTracker(targetPlayer)
 	end
-
 end)
 
-
 ------------------------------------------------
--- RESPAWN TRACKERS
-------------------------------------------------
-
-Players.PlayerAdded:Connect(function(plr)
-
-	plr.CharacterAdded:Connect(function()
-
-		task.wait(1)
-
-		if trackedPlayers[plr] then
-			createESP(plr,true)
-		end
-
-	end)
-
-end)
-
-
-------------------------------------------------
--- Z HOLD
+-- Z HOLD DETECTION
 ------------------------------------------------
 
-UIS.InputBegan:Connect(function(input,processed)
-
+UIS.InputBegan:Connect(function(input, processed)
 	if processed or scriptKilled then
 		return
 	end
 
-
 	if input.KeyCode == Enum.KeyCode.Z then
-
 		zHeld = true
 		showEveryone()
-
 	end
-
 end)
 
 
-
 UIS.InputEnded:Connect(function(input)
-
-
 	if input.KeyCode == Enum.KeyCode.Z then
-
 		zHeld = false
-
 		removeFlashESP()
 
-
+		-- restore permanent trackers
 		for plr in pairs(trackedPlayers) do
-
 			if plr.Character then
-				createESP(plr,true)
+				createESP(plr, true)
 			end
-
 		end
-
 	end
-
 end)
