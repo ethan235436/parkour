@@ -986,7 +986,7 @@ local playerGui = localPlayer:WaitForChild("PlayerGui")
 ------------------------------------------------
 
 local eLaunchEnabled = false
-local launchPower = 50 -- default slider value (1–100)
+local launchPower = 3 -- default slider value (1–100)
 
 ------------------------------------------------
 -- GUI
