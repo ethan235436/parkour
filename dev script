@@ -1548,10 +1548,29 @@ local function createESP(plr, permanent)
 	highlight.Adornee = plr.Character
 	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 
-	-- Check if the player is a Roblox friend to change colors
-	if player:IsFriendsWith(plr.UserId) then
-		highlight.FillColor = Color3.fromRGB(140, 255, 140) -- Light Green
+	-- Check friendship tiers
+	local isDirectFriend = player:IsFriendsWith(plr.UserId)
+	local isMutualFriend = false
+
+	if not isDirectFriend then
+		-- Scan the current server for mutual connections
+		for _, otherPlr in ipairs(Players:GetPlayers()) do
+			if otherPlr ~= player and otherPlr ~= plr then
+				if player:IsFriendsWith(otherPlr.UserId) and otherPlr:IsFriendsWith(plr.UserId) then
+					isMutualFriend = true
+					break
+				end
+			end
+		end
+	end
+
+	-- Apply colors based on relationship tier
+	if isDirectFriend then
+		highlight.FillColor = Color3.fromRGB(140, 255, 140) -- Light Green (Direct Friend)
 		highlight.OutlineColor = Color3.fromRGB(200, 255, 200)
+	elseif isMutualFriend then
+		highlight.FillColor = Color3.fromRGB(255, 255, 140) -- Yellow (Mutual Friend)
+		highlight.OutlineColor = Color3.fromRGB(255, 255, 200)
 	else
 		highlight.FillColor = Color3.fromRGB(0,220,255) -- Light Blue (Default)
 		highlight.OutlineColor = Color3.fromRGB(150,245,255)
