@@ -1390,8 +1390,14 @@ local function createESP(plr, permanent)
 	highlight.Adornee = plr.Character
 	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 
-	highlight.FillColor = Color3.fromRGB(0,220,255)
-	highlight.OutlineColor = Color3.fromRGB(150,245,255)
+	-- Check if the player is a Roblox friend to change colors
+	if player:IsFriendsWith(plr.UserId) then
+		highlight.FillColor = Color3.fromRGB(140, 255, 140) -- Light Green
+		highlight.OutlineColor = Color3.fromRGB(200, 255, 200)
+	else
+		highlight.FillColor = Color3.fromRGB(0,220,255) -- Light Blue (Default)
+		highlight.OutlineColor = Color3.fromRGB(150,245,255)
+	end
 
 	highlight.FillTransparency = 1
 	highlight.OutlineTransparency = 1
