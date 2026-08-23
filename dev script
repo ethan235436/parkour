@@ -1840,7 +1840,7 @@ UIS.InputEnded:Connect(function(input)
 
 end)
 ------------------------------------------------
--- ADDON: SMOOTH AIMBOT (EASY OVERRIDE)
+-- ADDON: HYBRID MAGNET LOCK AIMBOT
 ------------------------------------------------
 
 local RunService = game:GetService("RunService")
@@ -1873,23 +1873,26 @@ aimBtn.MouseButton1Click:Connect(function()
     aimBtn.Text = "Smooth Aimbot: " .. (aimbotEnabled and "ON" or "OFF")
 end)
 
--- Detect physical mouse movements to trigger the easy manual override
+-- Detect physical mouse movements to trigger the manual override fallback
 UIS.InputChanged:Connect(function(input)
     if aimbotEnabled and input.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = input.Delta
-        -- If user forces mouse movement beyond a tiny jitter threshold, break lock
-        if math.abs(delta.X) > 1.5 or math.abs(delta.Y) > 1.5 then
+        -- If you swipe away heavily, break target priority for a split second
+        if math.abs(delta.X) > 2.5 or math.abs(delta.Y) > 2.5 then
             mouseOverridden = true
-            overrideCooldown = 0.4 -- Releases camera control to user for 0.4 seconds
+            overrideCooldown = 0.35 
         end
     end
 end)
 
--- Find nearest player head relative to center screen
-local function getClosestPlayerHead()
+-- Finds the strictly NEAREST person in world 3D distance (not cursor distance)
+local function getAbsoluteNearestHead()
     local closestTarget = nil
     local shortestDistance = math.huge
-    local centerScreen = camera.ViewportSize / 2
+    local myChar = localPlayer.Character
+    if not myChar then return nil end
+    local myHrp = myChar:FindFirstChild("HumanoidRootPart")
+    if not myHrp then return nil end
 
     for _, plr in ipairs(game:GetService("Players"):GetPlayers()) do
         if plr ~= localPlayer and plr.Character then
@@ -1897,14 +1900,11 @@ local function getClosestPlayerHead()
             local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
             
             if head and humanoid and humanoid.Health > 0 then
-                local screenPos, visible = camera:WorldToViewportPoint(head.Position)
-                
-                if visible then
-                    local distance = (Vector2.new(screenPos.X, screenPos.Y) - centerScreen).Magnitude
-                    if distance < shortestDistance then
-                        shortestDistance = distance
-                        closestTarget = head
-                    end
+                -- Calculate actual 3D studs separation distance
+                local worldDist = (head.Position - myHrp.Position).Magnitude
+                if worldDist < shortestDistance then
+                    shortestDistance = worldDist
+                    closestTarget = head
                 end
             end
         end
@@ -1912,11 +1912,11 @@ local function getClosestPlayerHead()
     return closestTarget
 end
 
--- Smoothly guide camera towards target
+-- Smooth approach loop with hard lock stabilization logic
 RunService.RenderStepped:Connect(function(dt)
     if not aimbotEnabled then return end
 
-    -- Handle manual steering override timers
+    -- Manage active bypass window cooldowns
     if mouseOverridden then
         overrideCooldown = overrideCooldown - dt
         if overrideCooldown <= 0 then
@@ -1925,10 +1925,23 @@ RunService.RenderStepped:Connect(function(dt)
         return 
     end
 
-    local targetHead = getClosestPlayerHead()
+    local targetHead = getAbsoluteNearestHead()
     if targetHead then
+        local centerScreen = camera.ViewportSize / 2
+        local screenPos, visible = camera:WorldToViewportPoint(targetHead.Position)
+        
+        -- Default speed is a relaxed, smooth turn to find them
+        local currentLerpSpeed = 0.06 
+        
+        if visible then
+            local cursorOffset = (Vector2.new(screenPos.X, screenPos.Y) - centerScreen).Magnitude
+            -- If crosshairs settle within 65 pixels of their head, crank lock to maximum intensity
+            if cursorOffset < 65 then
+                currentLerpSpeed = 0.45 
+            end
+        end
+
         local targetCFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
-        -- Lerp speed of 0.12 provides soft magnetism that is easily fought by your hand
-        camera.CFrame = camera.CFrame:Lerp(targetCFrame, 0.12)
+        camera.CFrame = camera.CFrame:Lerp(targetCFrame, currentLerpSpeed)
     end
 end)
