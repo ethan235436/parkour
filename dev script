@@ -1840,7 +1840,7 @@ UIS.InputEnded:Connect(function(input)
 
 end)
 ------------------------------------------------
--- ADDON: HYBRID MAGNET LOCK AIMBOT
+-- ADDON: HYBRID MAGNET LOCK AIMBOT (PERIOD TOGGLE)
 ------------------------------------------------
 
 local RunService = game:GetService("RunService")
@@ -1850,6 +1850,7 @@ local camera = workspace.CurrentCamera
 local aimbotEnabled = false
 local mouseOverridden = false
 local overrideCooldown = 0
+local TOGGLE_KEY = Enum.KeyCode.Period -- Configured to '.' key
 
 -- Expand your existing frame size to fit the new button safely
 if frame then
@@ -1864,13 +1865,26 @@ aimBtn.BackgroundColor3 = Color3.fromRGB(30, 40, 30)
 aimBtn.TextColor3 = Color3.fromRGB(200, 255, 200)
 aimBtn.Font = Enum.Font.GothamBold
 aimBtn.TextSize = 14
-aimBtn.Text = "Smooth Aimbot: OFF"
+aimBtn.Text = "Smooth Aimbot: OFF [.]"
 aimBtn.Parent = frame
 Instance.new("UICorner", aimBtn)
 
-aimBtn.MouseButton1Click:Connect(function()
+-- Helper function to change state and update UI text
+local function toggleAimbot()
     aimbotEnabled = not aimbotEnabled
-    aimBtn.Text = "Smooth Aimbot: " .. (aimbotEnabled and "ON" or "OFF")
+    aimBtn.Text = "Smooth Aimbot: " .. (aimbotEnabled and "ON [.]" or "OFF [.]")
+end
+
+-- Toggle via UI click
+aimBtn.MouseButton1Click:Connect(toggleAimbot)
+
+-- Toggle via Period Key Keybind
+UIS.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    
+    if input.KeyCode == TOGGLE_KEY then
+        toggleAimbot()
+    end
 end)
 
 -- Detect physical mouse movements to trigger the manual override fallback
