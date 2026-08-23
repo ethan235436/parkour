@@ -1839,3 +1839,96 @@ UIS.InputEnded:Connect(function(input)
 	end
 
 end)
+------------------------------------------------
+-- ADDON: SMOOTH AIMBOT (EASY OVERRIDE)
+------------------------------------------------
+
+local RunService = game:GetService("RunService")
+local localPlayer = game:GetService("Players").LocalPlayer
+local camera = workspace.CurrentCamera
+
+local aimbotEnabled = false
+local mouseOverridden = false
+local overrideCooldown = 0
+
+-- Expand your existing frame size to fit the new button safely
+if frame then
+    frame.Size = UDim2.new(0, 420, 0, 560)
+end
+
+-- Create the Toggle Button
+local aimBtn = Instance.new("TextButton")
+aimBtn.Size = UDim2.new(0.9, 0, 0, 35)
+aimBtn.Position = UDim2.new(0.05, 0, 0, 380) -- Placed right under your Q Fall button
+aimBtn.BackgroundColor3 = Color3.fromRGB(30, 40, 30)
+aimBtn.TextColor3 = Color3.fromRGB(200, 255, 200)
+aimBtn.Font = Enum.Font.GothamBold
+aimBtn.TextSize = 14
+aimBtn.Text = "Smooth Aimbot: OFF"
+aimBtn.Parent = frame
+Instance.new("UICorner", aimBtn)
+
+aimBtn.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    aimBtn.Text = "Smooth Aimbot: " .. (aimbotEnabled and "ON" or "OFF")
+end)
+
+-- Detect physical mouse movements to trigger the easy manual override
+UIS.InputChanged:Connect(function(input)
+    if aimbotEnabled and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Delta
+        -- If user forces mouse movement beyond a tiny jitter threshold, break lock
+        if math.abs(delta.X) > 1.5 or math.abs(delta.Y) > 1.5 then
+            mouseOverridden = true
+            overrideCooldown = 0.4 -- Releases camera control to user for 0.4 seconds
+        end
+    end
+end)
+
+-- Find nearest player head relative to center screen
+local function getClosestPlayerHead()
+    local closestTarget = nil
+    local shortestDistance = math.huge
+    local centerScreen = camera.ViewportSize / 2
+
+    for _, plr in ipairs(game:GetService("Players"):GetPlayers()) do
+        if plr ~= localPlayer and plr.Character then
+            local head = plr.Character:FindFirstChild("Head")
+            local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+            
+            if head and humanoid and humanoid.Health > 0 then
+                local screenPos, visible = camera:WorldToViewportPoint(head.Position)
+                
+                if visible then
+                    local distance = (Vector2.new(screenPos.X, screenPos.Y) - centerScreen).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        closestTarget = head
+                    end
+                end
+            end
+        end
+    end
+    return closestTarget
+end
+
+-- Smoothly guide camera towards target
+RunService.RenderStepped:Connect(function(dt)
+    if not aimbotEnabled then return end
+
+    -- Handle manual steering override timers
+    if mouseOverridden then
+        overrideCooldown = overrideCooldown - dt
+        if overrideCooldown <= 0 then
+            mouseOverridden = false
+        end
+        return 
+    end
+
+    local targetHead = getClosestPlayerHead()
+    if targetHead then
+        local targetCFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
+        -- Lerp speed of 0.12 provides soft magnetism that is easily fought by your hand
+        camera.CFrame = camera.CFrame:Lerp(targetCFrame, 0.12)
+    end
+end)
