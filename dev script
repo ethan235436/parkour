@@ -2092,7 +2092,7 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 ------------------------------------------------
--- ADDON: SMOOTH DRONE OVERHEAD MAP VIEW MODE (DYNAMIC AXIS MATCH FIXED)
+-- ADDON: SMOOTH DRONE OVERHEAD MAP VIEW MODE (INVERTED DRAG DIRECTIONS)
 ------------------------------------------------
 
 local RunService = game:GetService("RunService")
@@ -2211,7 +2211,7 @@ RunService.RenderStepped:Connect(function(dt)
 		-- Scale conversion speed adaptively based on altitude zoom depth
 		local conversionFactor = (targetHeight / 1000) * CONFIG.mapDragSensitivity
 		
-		-- FIX: Construct reliable horizontal forward and right directions from the camera view
+		-- Construct reliable horizontal forward and right directions from the camera view
 		local camCFrame = camera.CFrame
 		
 		-- LookVector projected onto flat ground plane
@@ -2225,8 +2225,8 @@ RunService.RenderStepped:Connect(function(dt)
 		-- Compute a clean horizontal RightVector based on flat look direction
 		local flatRight = flatLook:Cross(Vector3.new(0, 1, 0)).Unit
 
-		-- Move the target position based on where the camera is facing horizontally
-		currentTargetPos = currentTargetPos - (flatRight * delta.X * conversionFactor) + (flatLook * delta.Y * conversionFactor)
+		-- FIX: Inverted operators (+ to X vector, - to Y vector) to move camera opposite of swipe direction
+		currentTargetPos = currentTargetPos + (flatRight * delta.X * conversionFactor) - (flatLook * delta.Y * conversionFactor)
 	end
 
 	-- 2. Linear Interpolate Camera Vector Transformations (Handles the smooth overhead flight)
