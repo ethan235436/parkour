@@ -2092,7 +2092,7 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 ------------------------------------------------
--- ADDON: SMOOTH DRONE OVERHEAD MAP VIEW MODE (AXIS MATRIX FULL FIX)
+-- ADDON: SMOOTH DRONE OVERHEAD MAP VIEW MODE (DYNAMIC AXIS MATCH FIXED)
 ------------------------------------------------
 
 local RunService = game:GetService("RunService")
@@ -2211,16 +2211,22 @@ RunService.RenderStepped:Connect(function(dt)
 		-- Scale conversion speed adaptively based on altitude zoom depth
 		local conversionFactor = (targetHeight / 1000) * CONFIG.mapDragSensitivity
 		
-		-- FIX: Drive planar transitions natively from look CFrame axis vectors
-		local camRight = camera.CFrame.RightVector
-		local camUp = camera.CFrame.UpVector
+		-- FIX: Construct reliable horizontal forward and right directions from the camera view
+		local camCFrame = camera.CFrame
+		
+		-- LookVector projected onto flat ground plane
+		local flatLook = Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z)
+		-- If looking almost straight down, fallback to the UpVector projected onto ground
+		if flatLook.Magnitude < 0.01 then
+			flatLook = Vector3.new(camCFrame.UpVector.X, 0, camCFrame.UpVector.Z) * -1
+		end
+		flatLook = flatLook.Unit
+		
+		-- Compute a clean horizontal RightVector based on flat look direction
+		local flatRight = flatLook:Cross(Vector3.new(0, 1, 0)).Unit
 
-		-- Flatten vectors to eliminate altitude calculation drift
-		local dragVectorX = Vector3.new(camRight.X, 0, camRight.Z).Unit
-		local dragVectorY = Vector3.new(camUp.X, 0, camUp.Z).Unit
-
-		-- Apply updates mapped naturally against screenspace delta offsets
-		currentTargetPos = currentTargetPos - (dragVectorX * delta.X * conversionFactor) - (dragVectorY * delta.Y * conversionFactor)
+		-- Move the target position based on where the camera is facing horizontally
+		currentTargetPos = currentTargetPos - (flatRight * delta.X * conversionFactor) + (flatLook * delta.Y * conversionFactor)
 	end
 
 	-- 2. Linear Interpolate Camera Vector Transformations (Handles the smooth overhead flight)
