@@ -66,7 +66,7 @@ Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 10)
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "ETHANS CYBERLIFE"
+title.Text = "ETHANS LAUNCH SYSTEM"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.TextColor3 = Color3.fromRGB(0, 255, 255)
@@ -1390,10 +1390,29 @@ local function createESP(plr, permanent)
 	highlight.Adornee = plr.Character
 	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 
-	-- Check if the player is a Roblox friend to change colors
-	if player:IsFriendsWith(plr.UserId) then
-		highlight.FillColor = Color3.fromRGB(140, 255, 140) -- Light Green
+	-- Check friendship tiers
+	local isDirectFriend = player:IsFriendsWith(plr.UserId)
+	local isMutualFriend = false
+
+	if not isDirectFriend then
+		-- Scan the current server for mutual connections
+		for _, otherPlr in ipairs(Players:GetPlayers()) do
+			if otherPlr ~= player and otherPlr ~= plr then
+				if player:IsFriendsWith(otherPlr.UserId) and otherPlr:IsFriendsWith(plr.UserId) then
+					isMutualFriend = true
+					break
+				end
+			end
+		end
+	end
+
+	-- Apply colors based on relationship tier
+	if isDirectFriend then
+		highlight.FillColor = Color3.fromRGB(140, 255, 140) -- Light Green (Direct Friend)
 		highlight.OutlineColor = Color3.fromRGB(200, 255, 200)
+	elseif isMutualFriend then
+		highlight.FillColor = Color3.fromRGB(255, 255, 140) -- Yellow (Mutual Friend)
+		highlight.OutlineColor = Color3.fromRGB(255, 255, 200)
 	else
 		highlight.FillColor = Color3.fromRGB(0,220,255) -- Light Blue (Default)
 		highlight.OutlineColor = Color3.fromRGB(150,245,255)
@@ -1661,4 +1680,249 @@ UIS.InputEnded:Connect(function(input)
 
 	end
 
+end)
+------------------------------------------------
+-- ADDON: CONFIGURABLE CURSOR AIMBOT + BORDER TRACERS
+------------------------------------------------
+
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService") -- Added missing service reference
+local localPlayer = game:GetService("Players").LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- Master Toggles
+local aimbotEnabled = false
+local tracersEnabled = false
+local mouseOverridden = false
+local overrideCooldown = 0
+
+-- Custom Tuning Metrics
+local AIM_MAX_STUDS = 400 -- Distance boundary check filter (Studs)
+local TOGGLE_KEY = Enum.KeyCode.Period -- Configured key binding '.'
+
+-- Create UI Canvas Container for Tracers Screen UI
+local screenGui = localPlayer:WaitForChild("PlayerGui"):FindFirstChild("TracerCanvas")
+if not screenGui then
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "TracerCanvas"
+    screenGui.IgnoreGuiInset = true
+    screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+end
+
+-- Safely stretch original panel configurations to avoid component overlaps
+if frame then
+    frame.Size = UDim2.new(0, 420, 0, 610) -- Expanded to 610px height
+end
+
+------------------------------------------------
+-- UI CONTROLS DESIGN ENGINE
+------------------------------------------------
+
+-- Button 1: Custom Smooth Aimbot Toggle
+local aimBtn = Instance.new("TextButton")
+aimBtn.Size = UDim2.new(0.9, 0, 0, 35)
+aimBtn.Position = UDim2.new(0.05, 0, 0, 380)
+aimBtn.BackgroundColor3 = Color3.fromRGB(30, 40, 30)
+aimBtn.TextColor3 = Color3.fromRGB(200, 255, 200)
+aimBtn.Font = Enum.Font.GothamBold
+aimBtn.TextSize = 14
+aimBtn.Text = "Smooth Aimbot: OFF [.]"
+aimBtn.Parent = frame
+Instance.new("UICorner", aimBtn)
+
+-- Button 2: Screen Boundary Arrow Tracers Toggle
+local tracerBtn = Instance.new("TextButton")
+tracerBtn.Size = UDim2.new(0.9, 0, 0, 35)
+tracerBtn.Position = UDim2.new(0.05, 0, 0, 425) -- Stacks below your Aimbot button
+tracerBtn.BackgroundColor3 = Color3.fromRGB(40, 30, 45)
+tracerBtn.TextColor3 = Color3.fromRGB(240, 180, 255)
+tracerBtn.Font = Enum.Font.GothamBold
+tracerBtn.TextSize = 14
+tracerBtn.Text = "Border Tracers: OFF"
+tracerBtn.Parent = frame
+Instance.new("UICorner", tracerBtn)
+
+local function toggleAimbot()
+    aimbotEnabled = not aimbotEnabled
+    aimBtn.Text = "Smooth Aimbot: " .. (aimbotEnabled and "ON [.]" or "OFF [.]")
+end
+
+local function toggleTracers()
+    tracersEnabled = not tracersEnabled
+    tracerBtn.Text = "Border Tracers: " .. (tracersEnabled and "ON" or "OFF")
+    if not tracersEnabled then
+        screenGui:ClearAllChildren() -- Wipe screen indicator elements instantly on disabling
+    end
+end
+
+aimBtn.MouseButton1Click:Connect(toggleAimbot)
+tracerBtn.MouseButton1Click:Connect(toggleTracers)
+
+-- Period Key Trigger Handler
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == TOGGLE_KEY then
+        toggleAimbot()
+    end
+end)
+
+-- Swipe Deflection Trigger Overrides
+UserInputService.InputChanged:Connect(function(input)
+    if aimbotEnabled and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Delta
+        if math.abs(delta.X) > 2.5 or math.abs(delta.Y) > 2.5 then
+            mouseOverridden = true
+            overrideCooldown = 0.35 
+        end
+    end
+end)
+
+------------------------------------------------
+-- DATA SCANNER FUNCTIONS
+------------------------------------------------
+
+-- Finds nearest player head relative specifically to where you are LOOKING (Cursor Center)
+local function getCursorTargetHead()
+    local closestTarget = nil
+    local shortestDistance = math.huge
+    local centerScreen = camera.ViewportSize / 2
+    local myChar = localPlayer.Character
+    if not myChar then return nil end
+    local myHrp = myChar:FindFirstChild("HumanoidRootPart")
+    if not myHrp then return nil end
+
+    for _, plr in ipairs(game:GetService("Players"):GetPlayers()) do
+        if plr ~= localPlayer and plr.Character then
+            local head = plr.Character:FindFirstChild("Head")
+            local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+            
+            if head and humanoid and humanoid.Health > 0 then
+                -- Step 1: Distance limit filter check
+                local studDist = (head.Position - myHrp.Position).Magnitude
+                if studDist <= AIM_MAX_STUDS then
+                    local screenPos, visible = camera:WorldToViewportPoint(head.Position)
+                    
+                    -- Step 2: Ensure target context is visible on screen to get cursor offset
+                    if visible then
+                        local cursorOffset = (Vector2.new(screenPos.X, screenPos.Y) - centerScreen).Magnitude
+                        if cursorOffset < shortestDistance then
+                            shortestDistance = cursorOffset
+                            closestTarget = head
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return closestTarget
+end
+
+------------------------------------------------
+-- RUN ENVIRONMENT SYSTEM LOOPS
+------------------------------------------------
+
+local activeArrows = {}
+
+RunService.RenderStepped:Connect(function(dt)
+    -- Part A: Aimbot Kinematics Execution
+    if aimbotEnabled and not mouseOverridden then
+        local targetHead = getCursorTargetHead()
+        if targetHead then
+            local centerScreen = camera.ViewportSize / 2
+            local screenPos, _ = camera:WorldToViewportPoint(targetHead.Position)
+            local cursorOffset = (Vector2.new(screenPos.X, screenPos.Y) - centerScreen).Magnitude
+            
+            -- Dynamic variable sticky lock zones
+            local currentLerpSpeed = 0.06
+            if cursorOffset < 65 then
+                currentLerpSpeed = 0.45 
+            end
+
+            local targetCFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
+            camera.CFrame = camera.CFrame:Lerp(targetCFrame, currentLerpSpeed)
+        end
+    elseif mouseOverridden then
+        overrideCooldown = overrideCooldown - dt
+        if overrideCooldown <= 0 then mouseOverridden = false end
+    end
+
+    -- Part B: Perimeter 2D Arrow Tracking Pipeline
+    if not tracersEnabled then 
+        -- Clean up cache if disabled during run frame
+        if next(activeArrows) then
+            screenGui:ClearAllChildren()
+            activeArrows = {}
+        end
+        return 
+    end
+
+    local currentPlayers = game:GetService("Players"):GetPlayers()
+    local screenSize = camera.ViewportSize
+    local margin = 35 -- Safe spacing pixel depth gap inside the absolute borders of screen display
+    local trackedThisFrame = {}
+
+    -- Create or maintain unique visual UI components for active users
+    for _, plr in ipairs(currentPlayers) do
+        if plr ~= localPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local root = plr.Character.HumanoidRootPart
+            local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+            
+            if humanoid and humanoid.Health > 0 then
+                local screenPos, visible = camera:WorldToViewportPoint(root.Position)
+                local arrow = activeArrows[plr.Name]
+
+                if not arrow then
+                    -- Create explicit triangle graphic layout asset components
+                    arrow = Instance.new("TextLabel")
+                    arrow.Name = plr.Name
+                    arrow.Size = UDim2.new(0, 24, 0, 24)
+                    arrow.AnchorPoint = Vector2.new(0.5, 0.5)
+                    arrow.BackgroundTransparency = 1
+                    arrow.Text = "▲" -- Triangle indicator vector character asset
+                    arrow.Font = Enum.Font.GothamBold
+                    arrow.TextSize = 22
+                    arrow.TextColor3 = Color3.fromRGB(240, 150, 255)
+                    arrow.Parent = screenGui
+                    activeArrows[plr.Name] = arrow
+                end
+
+                trackedThisFrame[plr.Name] = true
+
+                if not visible then
+                    -- Math to project target screen vector position if character lies out of field-of-view layout limits
+                    local dir = (camera.CFrame:PointToObjectSpace(root.Position)).Unit
+                    local angle = math.atan2(dir.X, -dir.Z)
+                    
+                    local center = screenSize / 2
+                    local rDir = Vector2.new(math.sin(angle), -math.cos(angle))
+                    
+                    -- Raycasting to find screen boundary intersection points
+                    local tx = math.huge
+                    local ty = math.huge
+                    
+                    if rDir.X > 0 then tx = (center.X - margin) / rDir.X elseif rDir.X < 0 then tx = (-center.X + margin) / rDir.X end
+                    if rDir.Y > 0 then ty = (center.Y - margin) / rDir.Y elseif rDir.Y < 0 then ty = (-center.Y + margin) / rDir.Y end
+                    
+                    local t = math.min(tx, ty)
+                    local edgePos = center + (rDir * t)
+                    
+                    -- Apply positional updates and orientation angles
+                    arrow.Visible = true
+                    arrow.Position = UDim2.new(0, edgePos.X, 0, edgePos.Y)
+                    arrow.Rotation = math.deg(angle)
+                else
+                    -- Hide arrow entirely if target is perfectly framed on your primary camera center screen
+                    arrow.Visible = false
+                end
+            end
+        end
+    end
+
+    -- Clear inactive visual labels for users who disconnected or died
+    for name, arrow in pairs(activeArrows) do
+        if not trackedThisFrame[name] then
+            arrow:Destroy()
+            activeArrows[name] = nil
+        end
+    end
 end)
