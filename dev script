@@ -2092,11 +2092,10 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 ------------------------------------------------
--- ADDON: SMOOTH DRONE OVERHEAD MAP VIEW MODE
+-- ADDON: SMOOTH DRONE OVERHEAD MAP VIEW MODE (FIXED OVERRIDE)
 ------------------------------------------------
 
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local localPlayer = game:GetService("Players").LocalPlayer
 local camera = workspace.CurrentCamera
@@ -2121,14 +2120,12 @@ local function toggleMapMode()
 	if mapActive then
 		-- Entering Map Mode: Initialize target camera over your current physical location
 		currentTargetPos = hrp.Position
-		targetHeight = math.clamp(150, CONFIG.mapMinZoom, CONFIG.mapMaxZoom)
+		targetHeight = 150
+		lastMousePos = UIS:GetMouseLocation()
 		camera.CameraType = Enum.CameraType.Scriptable
 	else
-		-- Exiting Map Mode: Smoothly hand camera manipulation loops back to normal CoreScripts
-		local targetCFrame = camera.CFrame
+		-- Exiting Map Mode: Hand camera control back to normal CoreScripts
 		camera.CameraType = Enum.CameraType.Custom
-		-- Force update structural alignment matrices back to standard focus parameters
-		camera.CFrame = targetCFrame 
 	end
 end
 
@@ -2161,11 +2158,11 @@ UIS.InputBegan:Connect(function(input, processed)
 			raycastParams.FilterInstances = {localPlayer.Character}
 		end
 
-		local result = workspace:Raycast(ray.Origin, ray.Direction * 1500, raycastParams)
+		local result = workspace:Raycast(ray.Origin, ray.Direction * 2000, raycastParams)
 		if result then
 			local char = localPlayer.Character
 			if char and char:FindFirstChild("HumanoidRootPart") then
-				-- Offset character slightly upward from intersection normal to prevent clip bugs
+				-- Teleport character directly to hit spot
 				char.HumanoidRootPart.CFrame = CFrame.new(result.Position + Vector3.new(0, 3, 0))
 			end
 		end
@@ -2197,6 +2194,11 @@ end)
 RunService.RenderStepped:Connect(function(dt)
 	if not mapActive then return end
 
+	-- HARD FORCED OVERRIDE: Prevent default Roblox scripts from breaking scriptable mode
+	if camera.CameraType ~= Enum.CameraType.Scriptable then
+		camera.CameraType = Enum.CameraType.Scriptable
+	end
+
 	-- 1. Calculate Vector Shift Movements across Drag Transitions
 	if isDraggingMap then
 		local currentMousePos = UIS:GetMouseLocation()
@@ -2204,24 +2206,17 @@ RunService.RenderStepped:Connect(function(dt)
 		lastMousePos = currentMousePos
 
 		-- Translate raw pixels into 3D space plane metrics relative to height zoom depth
-		local conversionFactor = (targetHeight / 800) * CONFIG.mapDragSensitivity
+		local conversionFactor = (targetHeight / 1000) * CONFIG.mapDragSensitivity
 		
-		-- Adjust target positions against current camera axis arrays
-		local rightVector = camera.CFrame.RightVector
-		local upVector = camera.CFrame.UpVector
-		
-		-- Flatten framing references on the XZ grid plane boundary limits
-		local flatRight = Vector3.new(rightVector.X, 0, rightVector.Z).Unit
-		local flatForward = Vector3.new(upVector.X, 0, upVector.Z).Unit
-
-		currentTargetPos = currentTargetPos - (flatRight * delta.X * conversionFactor) + (flatForward * delta.Y * conversionFactor)
+		-- Pull camera coordinates along flat cardinal angles based on screen drag deltas
+		currentTargetPos = currentTargetPos + Vector3.new(delta.X * conversionFactor, 0, delta.Y * conversionFactor)
 	end
 
 	-- 2. Linear Interpolate Camera Vector Transformations (Handles the smooth overhead flight)
 	local desiredCFramePosition = currentTargetPos + Vector3.new(0, targetHeight, 0)
 	
 	-- Rotate camera down facing target map arrays perpendicularly
-	local desiredCFrame = CFrame.new(desiredCFramePosition, desiredCFramePosition - Vector3.new(0, 1, 0.01))
+	local desiredCFrame = CFrame.new(desiredCFramePosition, desiredCFramePosition - Vector3.new(0, 1, 0.001))
 	
 	camera.CFrame = camera.CFrame:Lerp(desiredCFrame, CONFIG.mapTransitionSpeed)
 end)
