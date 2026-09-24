@@ -2092,7 +2092,7 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 ------------------------------------------------
--- ADDON: SMOOTH DRONE OVERHEAD MAP VIEW MODE (FIXED OVERRIDE)
+-- ADDON: SMOOTH DRONE OVERHEAD MAP VIEW MODE (AXIS & TELEPORT FIXED)
 ------------------------------------------------
 
 local RunService = game:GetService("RunService")
@@ -2149,7 +2149,9 @@ UIS.InputBegan:Connect(function(input, processed)
 	-- 3. Check right click map ground teleport interactions
 	if input.UserInputType == Enum.UserInputType.MouseButton2 then
 		local mousePos = UIS:GetMouseLocation()
-		local ray = camera:ViewportPointToRay(mousePos.X, mousePos.Y)
+		
+		-- Generates a clean 3D direction vector from screen space coordinates
+		local ray = camera:ViewportPointToRay(mousePos.X, mousePos.Y, 0)
 		
 		-- Use raycasting filters to query ground intersection geometries accurately
 		local raycastParams = RaycastParams.new()
@@ -2158,7 +2160,8 @@ UIS.InputBegan:Connect(function(input, processed)
 			raycastParams.FilterInstances = {localPlayer.Character}
 		end
 
-		local result = workspace:Raycast(ray.Origin, ray.Direction * 2000, raycastParams)
+		-- Extended length vector multiplication ensures ground is reached from extreme orbit zoom limits
+		local result = workspace:Raycast(ray.Origin, ray.Direction * 2500, raycastParams)
 		if result then
 			local char = localPlayer.Character
 			if char and char:FindFirstChild("HumanoidRootPart") then
@@ -2208,8 +2211,8 @@ RunService.RenderStepped:Connect(function(dt)
 		-- Translate raw pixels into 3D space plane metrics relative to height zoom depth
 		local conversionFactor = (targetHeight / 1000) * CONFIG.mapDragSensitivity
 		
-		-- Pull camera coordinates along flat cardinal angles based on screen drag deltas
-		currentTargetPos = currentTargetPos + Vector3.new(delta.X * conversionFactor, 0, delta.Y * conversionFactor)
+		-- FIX: Remapped Axis directions to translate natural hand movements horizontally onto world space grid lines
+		currentTargetPos = currentTargetPos - Vector3.new(delta.X * conversionFactor, 0, delta.Y * conversionFactor)
 	end
 
 	-- 2. Linear Interpolate Camera Vector Transformations (Handles the smooth overhead flight)
