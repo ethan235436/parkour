@@ -174,11 +174,18 @@ local CONFIG = {
 	menuTransparency = 0.50,
 
 	resetKey = Enum.KeyCode.C,
-
 	menuKey = Enum.KeyCode.LeftAlt,
 
 	waypointSetKey = Enum.KeyCode.F2,
-	waypointTeleportKey = Enum.KeyCode.F3
+	waypointTeleportKey = Enum.KeyCode.F3,
+
+	-- DRONE MAP CONFIG ADDITIONS --
+	mapToggleKey = Enum.KeyCode.N,        -- Key to open/close map mode
+	mapDragSensitivity = 1.8,            -- Speed multiplier for dragging the camera around
+	mapZoomSensitivity = 15,             -- Amount of studs changed per scroll wheel notch
+	mapMinZoom = 40,                     -- Minimum altitude overhead (Zoom In limit)
+	mapMaxZoom = 500,                    -- Maximum altitude overhead (Zoom Out limit)
+	mapTransitionSpeed = 0.2,            -- Camera smooth lerp rate (0.1 = slower/smoother, 1 = instant)
 }
 
 ------------------------------------------------
@@ -2083,4 +2090,138 @@ RunService.RenderStepped:Connect(function(dt)
             activeArrows[name] = nil
         end
     end
+end)
+------------------------------------------------
+-- ADDON: SMOOTH DRONE OVERHEAD MAP VIEW MODE
+------------------------------------------------
+
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local localPlayer = game:GetService("Players").LocalPlayer
+local camera = workspace.CurrentCamera
+
+local mapActive = false
+local currentTargetPos = Vector3.new()
+local targetHeight = 150 -- Start height overhead
+
+-- Interactivity tracking states
+local isDraggingMap = false
+local lastMousePos = Vector2.new()
+
+-- Handles toggling the script tracking loops
+local function toggleMapMode()
+	local char = localPlayer.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	mapActive = not mapActive
+
+	if mapActive then
+		-- Entering Map Mode: Initialize target camera over your current physical location
+		currentTargetPos = hrp.Position
+		targetHeight = math.clamp(150, CONFIG.mapMinZoom, CONFIG.mapMaxZoom)
+		camera.CameraType = Enum.CameraType.Scriptable
+	else
+		-- Exiting Map Mode: Smoothly hand camera manipulation loops back to normal CoreScripts
+		local targetCFrame = camera.CFrame
+		camera.CameraType = Enum.CameraType.Custom
+		-- Force update structural alignment matrices back to standard focus parameters
+		camera.CFrame = targetCFrame 
+	end
+end
+
+-- Input Begin Observers
+UIS.InputBegan:Connect(function(input, processed)
+	if processed then return end
+
+	-- 1. Check Toggle State Hotkey
+	if input.KeyCode == CONFIG.mapToggleKey then
+		toggleMapMode()
+	end
+
+	if not mapActive then return end
+
+	-- 2. Check left click drag tracking parameters
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		isDraggingMap = true
+		lastMousePos = UIS:GetMouseLocation()
+	end
+
+	-- 3. Check right click map ground teleport interactions
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		local mousePos = UIS:GetMouseLocation()
+		local ray = camera:ViewportPointToRay(mousePos.X, mousePos.Y)
+		
+		-- Use raycasting filters to query ground intersection geometries accurately
+		local raycastParams = RaycastParams.new()
+		raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+		if localPlayer.Character then
+			raycastParams.FilterInstances = {localPlayer.Character}
+		end
+
+		local result = workspace:Raycast(ray.Origin, ray.Direction * 1500, raycastParams)
+		if result then
+			local char = localPlayer.Character
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				-- Offset character slightly upward from intersection normal to prevent clip bugs
+				char.HumanoidRootPart.CFrame = CFrame.new(result.Position + Vector3.new(0, 3, 0))
+			end
+		end
+	end
+end)
+
+-- Input End Observers
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		isDraggingMap = false
+	end
+end)
+
+-- Scroll Wheel Dynamic Adjustment Handler (Zoom Loop Engine)
+UIS.InputChanged:Connect(function(input, processed)
+	if not mapActive or processed then return end
+
+	if input.UserInputType == Enum.UserInputType.MouseWheel then
+		-- Adjust standard target height metrics using custom scalar delta settings
+		targetHeight = math.clamp(
+			targetHeight - (input.Position.Z * CONFIG.mapZoomSensitivity), 
+			CONFIG.mapMinZoom, 
+			CONFIG.mapMaxZoom
+		)
+	end
+end)
+
+-- Kinematic Framing Calculations Loop runs on Render Step Frame updates
+RunService.RenderStepped:Connect(function(dt)
+	if not mapActive then return end
+
+	-- 1. Calculate Vector Shift Movements across Drag Transitions
+	if isDraggingMap then
+		local currentMousePos = UIS:GetMouseLocation()
+		local delta = currentMousePos - lastMousePos
+		lastMousePos = currentMousePos
+
+		-- Translate raw pixels into 3D space plane metrics relative to height zoom depth
+		local conversionFactor = (targetHeight / 800) * CONFIG.mapDragSensitivity
+		
+		-- Adjust target positions against current camera axis arrays
+		local rightVector = camera.CFrame.RightVector
+		local upVector = camera.CFrame.UpVector
+		
+		-- Flatten framing references on the XZ grid plane boundary limits
+		local flatRight = Vector3.new(rightVector.X, 0, rightVector.Z).Unit
+		local flatForward = Vector3.new(upVector.X, 0, upVector.Z).Unit
+
+		currentTargetPos = currentTargetPos - (flatRight * delta.X * conversionFactor) + (flatForward * delta.Y * conversionFactor)
+	end
+
+	-- 2. Linear Interpolate Camera Vector Transformations (Handles the smooth overhead flight)
+	local desiredCFramePosition = currentTargetPos + Vector3.new(0, targetHeight, 0)
+	
+	-- Rotate camera down facing target map arrays perpendicularly
+	local desiredCFrame = CFrame.new(desiredCFramePosition, desiredCFramePosition - Vector3.new(0, 1, 0.01))
+	
+	camera.CFrame = camera.CFrame:Lerp(desiredCFrame, CONFIG.mapTransitionSpeed)
 end)
