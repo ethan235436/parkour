@@ -2092,7 +2092,7 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 ------------------------------------------------
--- ADDON: SMOOTH DRONE OVERHEAD MAP VIEW MODE (AXIS & TELEPORT FIXED)
+-- ADDON: SMOOTH DRONE OVERHEAD MAP VIEW MODE (AXIS MATRIX FULL FIX)
 ------------------------------------------------
 
 local RunService = game:GetService("RunService")
@@ -2208,11 +2208,19 @@ RunService.RenderStepped:Connect(function(dt)
 		local delta = currentMousePos - lastMousePos
 		lastMousePos = currentMousePos
 
-		-- Translate raw pixels into 3D space plane metrics relative to height zoom depth
+		-- Scale conversion speed adaptively based on altitude zoom depth
 		local conversionFactor = (targetHeight / 1000) * CONFIG.mapDragSensitivity
 		
-		-- FIX: Remapped Axis directions to translate natural hand movements horizontally onto world space grid lines
-		currentTargetPos = currentTargetPos - Vector3.new(delta.X * conversionFactor, 0, delta.Y * conversionFactor)
+		-- FIX: Drive planar transitions natively from look CFrame axis vectors
+		local camRight = camera.CFrame.RightVector
+		local camUp = camera.CFrame.UpVector
+
+		-- Flatten vectors to eliminate altitude calculation drift
+		local dragVectorX = Vector3.new(camRight.X, 0, camRight.Z).Unit
+		local dragVectorY = Vector3.new(camUp.X, 0, camUp.Z).Unit
+
+		-- Apply updates mapped naturally against screenspace delta offsets
+		currentTargetPos = currentTargetPos - (dragVectorX * delta.X * conversionFactor) - (dragVectorY * delta.Y * conversionFactor)
 	end
 
 	-- 2. Linear Interpolate Camera Vector Transformations (Handles the smooth overhead flight)
