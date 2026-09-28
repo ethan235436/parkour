@@ -2237,3 +2237,120 @@ RunService.RenderStepped:Connect(function(dt)
 	
 	camera.CFrame = camera.CFrame:Lerp(desiredCFrame, CONFIG.mapTransitionSpeed)
 end)
+------------------------------------------------
+-- ADDON: ZERO GRAVITY TOGGLE WITH KEYBIND BINDING
+------------------------------------------------
+
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local localPlayer = game:GetService("Players").LocalPlayer
+
+-- Master Zero-G Mechanics States
+local zeroGEnabled = false
+local zeroGKey = nil -- Left completely blank by default until clicked
+local isScanningKey = false
+
+-- Safely scale the main panel height upwards to make roomy slot accommodations
+if frame then
+    frame.Size = UDim2.new(0, 420, 0, frame.Size.Y.Offset + 50)
+end
+
+-- Create Row Layout Frame Container
+local zeroGRow = Instance.new("Frame")
+zeroGRow.Size = UDim2.new(0.9, 0, 0, 35)
+zeroGRow.Position = UDim2.new(0.05, 0, 0, 470) -- Layered directly underneath the Border Tracers button
+zeroGRow.BackgroundTransparency = 1
+zeroGRow.Parent = frame
+
+-- Module Sub-Component A: Main Activation Button
+local zeroGBtn = Instance.new("TextButton")
+zeroGBtn.Size = UDim2.new(0.65, -5, 1, 0)
+zeroGBtn.Position = UDim2.new(0, 0, 0, 0)
+zeroGBtn.BackgroundColor3 = Color3.fromRGB(35, 45, 50)
+zeroGBtn.TextColor3 = Color3.fromRGB(180, 230, 255)
+zeroGBtn.Font = Enum.Font.GothamBold
+zeroGBtn.TextSize = 13
+zeroGBtn.Text = "Zero Gravity: OFF"
+zeroGBtn.Parent = zeroGRow
+Instance.new("UICorner", zeroGBtn)
+
+-- Module Sub-Component B: The Interactive Keybind Selector Block
+local bindBtn = Instance.new("TextButton")
+bindBtn.Size = UDim2.new(0.35, -5, 1, 0)
+bindBtn.Position = UDim2.new(0.65, 5, 0, 0)
+bindBtn.BackgroundColor3 = Color3.fromRGB(20, 25, 30)
+bindBtn.TextColor3 = Color3.fromRGB(140, 160, 180)
+bindBtn.Font = Enum.Font.GothamBold
+bindBtn.TextSize = 12
+bindBtn.Text = "[ NONE ]" -- Initial configuration presentation state
+bindBtn.Parent = zeroGRow
+Instance.new("UICorner", bindBtn)
+
+-- Core Functionality: Toggle engine handler properties
+local function toggleZeroGravity()
+    local char = localPlayer.Character
+	if not char then return end
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not humanoid or not hrp then return end
+
+	zeroGEnabled = not zeroGEnabled
+	zeroGBtn.Text = "Zero Gravity: " .. (zeroGEnabled and "ON" or "OFF")
+
+	if zeroGEnabled then
+		-- Apply state adjustments directly into physics parameters
+		workspace.Gravity = 0
+		-- Ensure the player doesn't float uncontrollably upward from physics momentum drift
+		if hrp.AssemblyLinearVelocity.Y > 0 then
+			hrp.AssemblyLinearVelocity = Vector3.new(hrp.AssemblyLinearVelocity.X, 0, hrp.AssemblyLinearVelocity.Z)
+		end
+	else
+		-- Restore standard engine default physics configurations safely
+		workspace.Gravity = 196.2
+	end
+end
+
+-- UI Component A Actions: Handle direct left clicks on the activation state bar
+zeroGBtn.MouseButton1Click:Connect(toggleZeroGravity)
+
+-- UI Component B Actions: Initiate keyboard key-capture system procedures
+bindBtn.MouseButton1Click:Connect(function()
+	if isScanningKey then return end
+	isScanningKey = true
+	bindBtn.Text = "Press any key..."
+	bindBtn.TextColor3 = Color3.fromRGB(255, 200, 100) -- Alerts user visually to scan window
+end)
+
+-- Capture structural input triggers
+UIS.InputBegan:Connect(function(input, processed)
+	-- Segment 1: Handle binding assign parameters if capturing loop is flagged active
+	if isScanningKey then
+		if input.UserInputType == Enum.UserInputType.Keyboard then
+			-- Reject overlapping UI control system keys safely
+			if input.KeyCode ~= Enum.KeyCode.Escape and input.KeyCode ~= Enum.KeyCode.Unknown then
+				zeroGKey = input.KeyCode
+				isScanningKey = false
+				bindBtn.Text = "[ " .. input.KeyCode.Name:upper() .. " ]"
+				bindBtn.TextColor3 = Color3.fromRGB(150, 255, 150) -- Turn green to confirm success
+			end
+		end
+		return -- Intercept standard operations from completing processing
+	end
+
+	-- Segment 2: Process core script mechanics triggers during valid conditions
+	if processed then return end
+
+	if zeroGKey and input.KeyCode == zeroGKey then
+		toggleZeroGravity()
+	end
+end)
+
+-- Cleanup Engine Safeguards: Dynamically watch context shifts to prevent locking glitches
+charAddedConnection = localPlayer.CharacterAdded:Connect(function(char)
+	-- Keep world gravity states synced if character models reset mid-session
+	if zeroGEnabled then
+		workspace.Gravity = 0
+	else
+		workspace.Gravity = 196.2
+	end
+end)
