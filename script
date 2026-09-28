@@ -16,11 +16,18 @@ local CONFIG = {
 	menuTransparency = 0.50,
 
 	resetKey = Enum.KeyCode.C,
-
 	menuKey = Enum.KeyCode.LeftAlt,
 
 	waypointSetKey = Enum.KeyCode.F2,
-	waypointTeleportKey = Enum.KeyCode.F3
+	waypointTeleportKey = Enum.KeyCode.F3,
+
+	-- DRONE MAP CONFIG ADDITIONS --
+	mapToggleKey = Enum.KeyCode.N,        -- Key to open/close map mode
+	mapDragSensitivity = 1.8,            -- Speed multiplier for dragging the camera around
+	mapZoomSensitivity = 15,             -- Amount of studs changed per scroll wheel notch
+	mapMinZoom = 40,                     -- Minimum altitude overhead (Zoom In limit)
+	mapMaxZoom = 500,                    -- Maximum altitude overhead (Zoom Out limit)
+	mapTransitionSpeed = 0.2,            -- Camera smooth lerp rate (0.1 = slower/smoother, 1 = instant)
 }
 
 ------------------------------------------------
@@ -1925,4 +1932,150 @@ RunService.RenderStepped:Connect(function(dt)
             activeArrows[name] = nil
         end
     end
+end)
+------------------------------------------------
+-- ADDON: SMOOTH DRONE OVERHEAD MAP VIEW MODE (INVERTED DRAG DIRECTIONS)
+------------------------------------------------
+
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local localPlayer = game:GetService("Players").LocalPlayer
+local camera = workspace.CurrentCamera
+
+local mapActive = false
+local currentTargetPos = Vector3.new()
+local targetHeight = 150 -- Start height overhead
+
+-- Interactivity tracking states
+local isDraggingMap = false
+local lastMousePos = Vector2.new()
+
+-- Handles toggling the script tracking loops
+local function toggleMapMode()
+	local char = localPlayer.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	mapActive = not mapActive
+
+	if mapActive then
+		-- Entering Map Mode: Initialize target camera over your current physical location
+		currentTargetPos = hrp.Position
+		targetHeight = 150
+		lastMousePos = UIS:GetMouseLocation()
+		camera.CameraType = Enum.CameraType.Scriptable
+	else
+		-- Exiting Map Mode: Hand camera control back to normal CoreScripts
+		camera.CameraType = Enum.CameraType.Custom
+	end
+end
+
+-- Input Begin Observers
+UIS.InputBegan:Connect(function(input, processed)
+	if processed then return end
+
+	-- 1. Check Toggle State Hotkey
+	if input.KeyCode == CONFIG.mapToggleKey then
+		toggleMapMode()
+	end
+
+	if not mapActive then return end
+
+	-- 2. Check left click drag tracking parameters
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		isDraggingMap = true
+		lastMousePos = UIS:GetMouseLocation()
+	end
+
+	-- 3. Check right click map ground teleport interactions
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		local mousePos = UIS:GetMouseLocation()
+		
+		-- Generates a clean 3D direction vector from screen space coordinates
+		local ray = camera:ViewportPointToRay(mousePos.X, mousePos.Y, 0)
+		
+		-- Use raycasting filters to query ground intersection geometries accurately
+		local raycastParams = RaycastParams.new()
+		raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+		if localPlayer.Character then
+			raycastParams.FilterInstances = {localPlayer.Character}
+		end
+
+		-- Extended length vector multiplication ensures ground is reached from extreme orbit zoom limits
+		local result = workspace:Raycast(ray.Origin, ray.Direction * 2500, raycastParams)
+		if result then
+			local char = localPlayer.Character
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				-- Teleport character directly to hit spot
+				char.HumanoidRootPart.CFrame = CFrame.new(result.Position + Vector3.new(0, 3, 0))
+			end
+		end
+	end
+end)
+
+-- Input End Observers
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		isDraggingMap = false
+	end
+end)
+
+-- Scroll Wheel Dynamic Adjustment Handler (Zoom Loop Engine)
+UIS.InputChanged:Connect(function(input, processed)
+	if not mapActive or processed then return end
+
+	if input.UserInputType == Enum.UserInputType.MouseWheel then
+		-- Adjust standard target height metrics using custom scalar delta settings
+		targetHeight = math.clamp(
+			targetHeight - (input.Position.Z * CONFIG.mapZoomSensitivity), 
+			CONFIG.mapMinZoom, 
+			CONFIG.mapMaxZoom
+		)
+	end
+end)
+
+-- Kinematic Framing Calculations Loop runs on Render Step Frame updates
+RunService.RenderStepped:Connect(function(dt)
+	if not mapActive then return end
+
+	-- HARD FORCED OVERRIDE: Prevent default Roblox scripts from breaking scriptable mode
+	if camera.CameraType ~= Enum.CameraType.Scriptable then
+		camera.CameraType = Enum.CameraType.Scriptable
+	end
+
+	-- 1. Calculate Vector Shift Movements across Drag Transitions
+	if isDraggingMap then
+		local currentMousePos = UIS:GetMouseLocation()
+		local delta = currentMousePos - lastMousePos
+		lastMousePos = currentMousePos
+
+		-- Scale conversion speed adaptively based on altitude zoom depth
+		local conversionFactor = (targetHeight / 1000) * CONFIG.mapDragSensitivity
+		
+		-- Construct reliable horizontal forward and right directions from the camera view
+		local camCFrame = camera.CFrame
+		
+		-- LookVector projected onto flat ground plane
+		local flatLook = Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z)
+		-- If looking almost straight down, fallback to the UpVector projected onto ground
+		if flatLook.Magnitude < 0.01 then
+			flatLook = Vector3.new(camCFrame.UpVector.X, 0, camCFrame.UpVector.Z) * -1
+		end
+		flatLook = flatLook.Unit
+		
+		-- Compute a clean horizontal RightVector based on flat look direction
+		local flatRight = flatLook:Cross(Vector3.new(0, 1, 0)).Unit
+
+		-- FIX: Inverted operators (+ to X vector, - to Y vector) to move camera opposite of swipe direction
+		currentTargetPos = currentTargetPos + (flatRight * delta.X * conversionFactor) - (flatLook * delta.Y * conversionFactor)
+	end
+
+	-- 2. Linear Interpolate Camera Vector Transformations (Handles the smooth overhead flight)
+	local desiredCFramePosition = currentTargetPos + Vector3.new(0, targetHeight, 0)
+	
+	-- Rotate camera down facing target map arrays perpendicularly
+	local desiredCFrame = CFrame.new(desiredCFramePosition, desiredCFramePosition - Vector3.new(0, 1, 0.001))
+	
+	camera.CFrame = camera.CFrame:Lerp(desiredCFrame, CONFIG.mapTransitionSpeed)
 end)
