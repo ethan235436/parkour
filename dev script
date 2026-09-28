@@ -525,10 +525,52 @@ local function killScript()
 end
 
 ------------------------------------------------
+-- GLOBAL STATE FOR THE TOGGLE ADDONS
+------------------------------------------------
+local fLaunchEnabled = true -- ON by default, toggleable via the new button
+local zeroGEnabled = false
+local zeroGKey = nil 
+local isScanningKey = false
+
+------------------------------------------------
 -- INPUTS
 ------------------------------------------------
 connections.main = UIS.InputBegan:Connect(function(input, processed)
 	if processed or scriptKilled then return end
+
+	-- Zero-G Keybind Scan Intercept Window
+	if isScanningKey then
+		if input.UserInputType == Enum.UserInputType.Keyboard then
+			if input.KeyCode ~= Enum.KeyCode.Escape and input.KeyCode ~= Enum.KeyCode.Unknown then
+				zeroGKey = input.KeyCode
+				isScanningKey = false
+				if bindBtn then
+					bindBtn.Text = "[ " .. input.KeyCode.Name:upper() .. " ]"
+					bindBtn.TextColor3 = Color3.fromRGB(150, 255, 150)
+				end
+			end
+		end
+		return
+	end
+
+	-- Zero Gravity Action Trigger
+	if zeroGKey and input.KeyCode == zeroGKey then
+		local char = player.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			zeroGEnabled = not zeroGEnabled
+			if zeroGBtn then
+				zeroGBtn.Text = "Zero Gravity: " .. (zeroGEnabled and "ON" or "OFF")
+			end
+			if zeroGEnabled then
+				workspace.Gravity = 0
+				if char.HumanoidRootPart.AssemblyLinearVelocity.Y > 0 then
+					char.HumanoidRootPart.AssemblyLinearVelocity = Vector3.new(char.HumanoidRootPart.AssemblyLinearVelocity.X, 0, char.HumanoidRootPart.AssemblyLinearVelocity.Z)
+				end
+			else
+				workspace.Gravity = 196.2
+			end
+		end
+	end
 
 	if input.KeyCode == CONFIG.menuKey then
 		menuOpen = not menuOpen
@@ -536,8 +578,13 @@ connections.main = UIS.InputBegan:Connect(function(input, processed)
 		if menuOpen then fadeIn() else task.spawn(fadeOut) end
 	end
 
+	-- F-Launch Trigger (Now bound to the fLaunchEnabled toggle state)
 	if input.KeyCode == Enum.KeyCode.F then
-		launchForward()
+		if fLaunchEnabled then
+			launchForward()
+		else
+			addLog("F-Launch blocked (System Disabled)")
+		end
 	end
 
 	if input.KeyCode == Enum.KeyCode.R then
@@ -2348,6 +2395,109 @@ end)
 -- Cleanup Engine Safeguards: Dynamically watch context shifts to prevent locking glitches
 charAddedConnection = localPlayer.CharacterAdded:Connect(function(char)
 	-- Keep world gravity states synced if character models reset mid-session
+	if zeroGEnabled then
+		workspace.Gravity = 0
+	else
+		workspace.Gravity = 196.2
+	end
+end)
+------------------------------------------------
+-- ADDON: ZERO GRAVITY & LAUNCH SYSTEM TOGGLES
+------------------------------------------------
+
+-- Expand the main panel height dynamically to perfectly fit both rows without overlaps
+if frame then
+    frame.Size = UDim2.new(0, 420, 0, frame.Size.Y.Offset + 95)
+end
+
+------------------------------------------------
+-- ROW 1: ZERO GRAVITY CONTROLS
+------------------------------------------------
+local zeroGRow = Instance.new("Frame")
+zeroGRow.Size = UDim2.new(0.9, 0, 0, 35)
+zeroGRow.Position = UDim2.new(0.05, 0, 0, 470) -- Layered directly underneath previous menu features
+zeroGRow.BackgroundTransparency = 1
+zeroGRow.Parent = frame
+
+-- Main Activation Button
+_G.zeroGBtn = Instance.new("TextButton")
+local zeroGBtn = _G.zeroGBtn
+zeroGBtn.Size = UDim2.new(0.65, -5, 1, 0)
+zeroGBtn.Position = UDim2.new(0, 0, 0, 0)
+zeroGBtn.BackgroundColor3 = Color3.fromRGB(35, 45, 50)
+zeroGBtn.TextColor3 = Color3.fromRGB(180, 230, 255)
+zeroGBtn.Font = Enum.Font.GothamBold
+zeroGBtn.TextSize = 13
+zeroGBtn.Text = "Zero Gravity: OFF"
+zeroGBtn.Parent = zeroGRow
+Instance.new("UICorner", zeroGBtn)
+
+-- The Interactive Keybind Selector Block
+_G.bindBtn = Instance.new("TextButton")
+local bindBtn = _G.bindBtn
+bindBtn.Size = UDim2.new(0.35, -5, 1, 0)
+bindBtn.Position = UDim2.new(0.65, 5, 0, 0)
+bindBtn.BackgroundColor3 = Color3.fromRGB(20, 25, 30)
+bindBtn.TextColor3 = Color3.fromRGB(140, 160, 180)
+bindBtn.Font = Enum.Font.GothamBold
+bindBtn.TextSize = 12
+bindBtn.Text = "[ NONE ]" 
+bindBtn.Parent = zeroGRow
+Instance.new("UICorner", bindBtn)
+
+zeroGBtn.MouseButton1Click:Connect(function()
+    local char = player.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+	zeroGEnabled = not zeroGEnabled
+	zeroGBtn.Text = "Zero Gravity: " .. (zeroGEnabled and "ON" or "OFF")
+
+	if zeroGEnabled then
+		workspace.Gravity = 0
+		if char.HumanoidRootPart.AssemblyLinearVelocity.Y > 0 then
+			char.HumanoidRootPart.AssemblyLinearVelocity = Vector3.new(char.HumanoidRootPart.AssemblyLinearVelocity.X, 0, char.HumanoidRootPart.AssemblyLinearVelocity.Z)
+		end
+	else
+		workspace.Gravity = 196.2
+	end
+end)
+
+bindBtn.MouseButton1Click:Connect(function()
+	if isScanningKey then return end
+	isScanningKey = true
+	bindBtn.Text = "Press any key..."
+	bindBtn.TextColor3 = Color3.fromRGB(255, 200, 100) 
+end)
+
+------------------------------------------------
+-- ROW 2: F-LAUNCH MASTER TOGGLE
+------------------------------------------------
+local launchRow = Instance.new("Frame")
+launchRow.Size = UDim2.new(0.9, 0, 0, 35)
+launchRow.Position = UDim2.new(0.05, 0, 0, 515) -- Stacked cleanly under the Zero Gravity controls
+launchRow.BackgroundTransparency = 1
+launchRow.Parent = frame
+
+local launchToggleBtn = Instance.new("TextButton")
+launchToggleBtn.Size = UDim2.new(1, 0, 1, 0)
+launchToggleBtn.Position = UDim2.new(0, 0, 0, 0)
+launchToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 35, 35)
+launchToggleBtn.TextColor3 = Color3.fromRGB(255, 180, 180)
+launchToggleBtn.Font = Enum.Font.GothamBold
+launchToggleBtn.TextSize = 13
+launchToggleBtn.Text = "F-Launch System: ON"
+launchToggleBtn.Parent = launchRow
+Instance.new("UICorner", launchToggleBtn)
+
+launchToggleBtn.MouseButton1Click:Connect(function()
+	fLaunchEnabled = not fLaunchEnabled
+	launchToggleBtn.Text = "F-Launch System: " .. (fLaunchEnabled and "ON" or "OFF")
+	addLog("Launch system state: " .. (fLaunchEnabled and "Enabled" or "Disabled"))
+end)
+
+-- Structural Persistence Sync Listener Hook
+player.CharacterAdded:Connect(function(char)
+	task.wait(0.2)
 	if zeroGEnabled then
 		workspace.Gravity = 0
 	else
