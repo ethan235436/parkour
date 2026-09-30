@@ -2512,7 +2512,7 @@ local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local localPlayer = game:GetService("Players").LocalPlayer
 
-local fps = 60
+local fps = 30
 local fullAnimationFrames = {}
 local totalFramesLoaded = 0
 local dataHasLoaded = false
