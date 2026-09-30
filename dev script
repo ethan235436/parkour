@@ -2505,22 +2505,12 @@ player.CharacterAdded:Connect(function(char)
 	end
 end)
 ------------------------------------------------
--- ADDON: ARROW KEYS KONAMI CODE EASTER EGG (STREAMING FULL BAD APPLE)
+-- ADDON: SHIFT + B EASTER EGG (STREAMING FULL BAD APPLE)
 ------------------------------------------------
 
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local localPlayer = game:GetService("Players").LocalPlayer
-
--- Restored to standard physical arrow keys
-local KONAMI_CODE = {
-	Enum.KeyCode.Up, Enum.KeyCode.Up,
-	Enum.KeyCode.Down, Enum.KeyCode.Down,
-	Enum.KeyCode.Left, Enum.KeyCode.Right,
-	Enum.KeyCode.Left, Enum.KeyCode.Right,
-	Enum.KeyCode.B, Enum.KeyCode.A
-}
-local currentSequenceIndex = 1
 
 -- Streaming Cache Containers
 local fullAnimationFrames = {}
@@ -2576,7 +2566,7 @@ displayLabel.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 displayLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 displayLabel.Font = Enum.Font.Code -- Monospace formatting
 displayLabel.TextSize = 13
-displayLabel.Text = "Konami Code Active!\nFetching animation frames..."
+displayLabel.Text = "Hotkey Triggered!\nFetching animation frames..."
 displayLabel.Parent = mainAppleFrame
 Instance.new("UICorner", displayLabel).CornerRadius = UDim.new(0, 4)
 
@@ -2606,7 +2596,7 @@ local function downloadVideoData()
 			dataHasLoaded = true
 			isDownloading = false
 			headerLabel.Text = "♪ Bad Apple !! ♫"
-			displayLabel.Text = "Ready! Input Arrow Code: Up Up Down Down Left Right Left Right B A again to play."
+			displayLabel.Text = "Ready! Press Shift + B again to play."
 		else
 			isDownloading = false
 			headerLabel.Text = "Download Failed"
@@ -2661,29 +2651,18 @@ RunService.RenderStepped:Connect(function(dt)
 end)
 
 ------------------------------------------------
--- SEQUENCE KEY INPUT SEQUENCE OBSERVER
+-- SHIFT + B MODIFIER INPUT OBSERVER
 ------------------------------------------------
 UIS.InputBegan:Connect(function(input, processed)
 	if scriptKilled then return end
-	
-	-- FIX: Explicitly bypass 'processed' checks for the arrow keys, B, and A keys
-	local isTargetKey = (input.KeyCode == Enum.KeyCode.Up or input.KeyCode == Enum.KeyCode.Down or 
-	                     input.KeyCode == Enum.KeyCode.Left or input.KeyCode == Enum.KeyCode.Right or 
-	                     input.KeyCode == Enum.KeyCode.B or input.KeyCode == Enum.KeyCode.A)
-	                     
-	if processed and not isTargetKey then return end
+	if processed then return end
 	if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
 	
-	if input.KeyCode == KONAMI_CODE[currentSequenceIndex] then
-		currentSequenceIndex = currentSequenceIndex + 1
-		if currentSequenceIndex > #KONAMI_CODE then
-			currentSequenceIndex = 1
+	-- Check if 'B' is pressed while either Left Shift or Right Shift is actively held down
+	if input.KeyCode == Enum.KeyCode.B then
+		local shiftHeld = UIS:IsKeyDown(Enum.KeyCode.LeftShift) or UIS:IsKeyDown(Enum.KeyCode.RightShift)
+		if shiftHeld then
 			startBadApple()
-		end
-	else
-		currentSequenceIndex = 1
-		if input.KeyCode == KONAMI_CODE[1] then
-			currentSequenceIndex = 2
 		end
 	end
 end)
