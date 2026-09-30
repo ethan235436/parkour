@@ -2504,3 +2504,184 @@ player.CharacterAdded:Connect(function(char)
 		workspace.Gravity = 196.2
 	end
 end)
+------------------------------------------------
+-- ADDON: KONAMI CODE EASTER EGG (STREAMING FULL BAD APPLE)
+------------------------------------------------
+
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+local UIS = game:GetService("UserInputService")
+local localPlayer = game:GetService("Players").LocalPlayer
+
+-- Konami Code Pattern Match Array
+local KONAMI_CODE = {
+	Enum.KeyCode.Up, Enum.KeyCode.Up,
+	Enum.KeyCode.Down, Enum.KeyCode.Down,
+	Enum.KeyCode.Left, Enum.KeyCode.Right,
+	Enum.KeyCode.Left, Enum.KeyCode.Right,
+	Enum.KeyCode.B, Enum.KeyCode.A
+}
+local currentSequenceIndex = 1
+
+-- Streaming Cache Containers
+local fullAnimationFrames = {}
+local totalFramesLoaded = 0
+local dataHasLoaded = false
+local isDownloading = false
+
+-- Canvas Structure Layout Allocations
+local playerGui = localPlayer:WaitForChild("PlayerGui")
+local appleGui = playerGui:FindFirstChild("BadAppleCanvas")
+if not appleGui then
+	appleGui = Instance.new("ScreenGui")
+	appleGui.Name = "BadAppleCanvas"
+	appleGui.ResetOnSpawn = false
+	appleGui.Parent = playerGui
+end
+
+local mainAppleFrame = Instance.new("Frame")
+mainAppleFrame.Size = UDim2.new(0, 320, 0, 340)
+mainAppleFrame.Position = UDim2.new(0.5, -160, 0.5, -170)
+mainAppleFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+mainAppleFrame.BorderSizePixel = 0
+mainAppleFrame.Visible = false
+mainAppleFrame.Parent = appleGui
+Instance.new("UICorner", mainAppleFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", mainAppleFrame).Color = Color3.fromRGB(45, 45, 55)
+
+local headerLabel = Instance.new("TextLabel")
+headerLabel.Size = UDim2.new(1, 0, 0, 30)
+headerLabel.Position = UDim2.new(0, 0, 0, 5)
+headerLabel.BackgroundTransparency = 1
+headerLabel.Text = "♪ Bad Apple !! ♫ (Loading...)"
+headerLabel.Font = Enum.Font.GothamBold
+headerLabel.TextSize = 14
+headerLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+headerLabel.Parent = mainAppleFrame
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 24, 0, 24)
+closeBtn.Position = UDim2.new(1, -30, 0, 6)
+closeBtn.BackgroundColor3 = Color3.fromRGB(35, 25, 25)
+closeBtn.TextColor3 = Color3.fromRGB(255, 120, 120)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 12
+closeBtn.Text = "X"
+closeBtn.Parent = mainAppleFrame
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
+
+local displayLabel = Instance.new("TextLabel")
+displayLabel.Size = UDim2.new(0.9, 0, 0.8, 0)
+displayLabel.Position = UDim2.new(0.05, 0, 0.15, 0)
+displayLabel.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+displayLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+displayLabel.Font = Enum.Font.Code -- Monospace formatting
+displayLabel.TextSize = 13
+displayLabel.Text = "Entering Konami Code Unlocked!\nFetching animation frames..."
+displayLabel.Parent = mainAppleFrame
+Instance.new("UICorner", displayLabel).CornerRadius = UDim.new(0, 4)
+
+------------------------------------------------
+-- HTTP STREAMING CACHE ENGINE
+------------------------------------------------
+local function downloadVideoData()
+	if dataHasLoaded or isDownloading then return end
+	isDownloading = true
+	headerLabel.Text = "Downloading Frame Data..."
+	
+	task.spawn(function()
+		local success, result = pcall(function()
+			-- Pulls raw pre-formatted frame logs securely from public repository hosting links
+			return game:HttpGet("https://raw.githubusercontent.com/TacoCatBackWardsIsTacoCat/Drive/main/badapple.txt")
+		end)
+		
+		if success and result then
+			-- Split massive data chunk string array indicators by tabs
+			local splitData = string.split(result, "\t")
+			for idx, rawFrame in ipairs(splitData) do
+				-- Translate binary matrix arrays into high contrast visual characters
+				local formatted = string.gsub(rawFrame, "1", "░")
+				formatted = string.gsub(formatted, "2", "▒")
+				formatted = string.gsub(formatted, "3", "█")
+				table.insert(fullAnimationFrames, formatted)
+			end
+			
+			totalFramesLoaded = #fullAnimationFrames
+			dataHasLoaded = true
+			isDownloading = false
+			headerLabel.Text = "♪ Bad Apple !! ♫"
+			displayLabel.Text = "Ready! Press Konami code keys again to play."
+		else
+			isDownloading = false
+			headerLabel.Text = "Download Failed"
+			displayLabel.Text = "Error streaming video data. Check exploit HttpGet settings."
+		end
+	end)
+end
+
+------------------------------------------------
+-- ANIMATION REPRODUCTION ENGINE LOOP
+------------------------------------------------
+local isPlaying = false
+local currentFrame = 1
+local playbackTimer = 0
+local TARGET_FRAME_DELAY = 1 / 30 -- Smooth 30 FPS timing lock configuration
+
+local function startBadApple()
+	mainAppleFrame.Visible = true
+	if not dataHasLoaded then
+		downloadVideoData()
+		return
+	end
+	
+	if isPlaying then return end
+	isPlaying = true
+	currentFrame = 1
+	playbackTimer = 0
+	
+	if addLog then addLog("Playing Full Bad Apple (30 FPS Stream Enabled)") end
+end
+
+closeBtn.MouseButton1Click:Connect(function()
+	isPlaying = false
+	mainAppleFrame.Visible = false
+end)
+
+RunService.RenderStepped:Connect(function(dt)
+	if not isPlaying or not dataHasLoaded then return end
+	
+	playbackTimer = playbackTimer + dt
+	if playbackTimer >= TARGET_FRAME_DELAY then
+		-- Calculate missed step gaps to preserve absolute tempo syncing profiles
+		local framesToAdvance = math.floor(playbackTimer / TARGET_FRAME_DELAY)
+		playbackTimer = playbackTimer - (framesToAdvance * TARGET_FRAME_DELAY)
+		
+		currentFrame = currentFrame + framesToAdvance
+		if currentFrame > totalFramesLoaded then
+			currentFrame = 1 -- Loop video safely back to beginning
+		end
+		
+		displayLabel.Text = fullAnimationFrames[currentFrame]
+	end
+end)
+
+------------------------------------------------
+-- SEQUENCE KEY INPUT SEQUENCE OBSERVER
+------------------------------------------------
+UIS.InputBegan:Connect(function(input, processed)
+	if processed or scriptKilled then return end
+	if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+	
+	if input.KeyCode == KONAMI_CODE[currentSequenceIndex] then
+		currentSequenceIndex = currentSequenceIndex + 1
+		if currentSequenceIndex > #KONAMI_CODE then
+			currentSequenceIndex = 1
+			startBadApple()
+		end
+	else
+		currentSequenceIndex = 1
+		if input.KeyCode == KONAMI_CODE[1] then
+			currentSequenceIndex = 2
+		end
+	end
+end)
