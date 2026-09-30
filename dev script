@@ -2505,14 +2505,14 @@ player.CharacterAdded:Connect(function(char)
 	end
 end)
 ------------------------------------------------
--- ADDON: SHIFT + B EASTER EGG (STREAMING FULL BAD APPLE)
+-- ADDON: SHIFT + B HTTP BAD APPLE (WORKING REPOSITORY LINK)
 ------------------------------------------------
 
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local localPlayer = game:GetService("Players").LocalPlayer
 
--- Streaming Cache Containers
+local fps = 60
 local fullAnimationFrames = {}
 local totalFramesLoaded = 0
 local dataHasLoaded = false
@@ -2565,30 +2565,36 @@ displayLabel.Position = UDim2.new(0.05, 0, 0.15, 0)
 displayLabel.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 displayLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 displayLabel.Font = Enum.Font.Code -- Monospace formatting
-displayLabel.TextSize = 13
-displayLabel.Text = "Hotkey Triggered!\nFetching animation frames..."
+displayLabel.TextSize = 10 -- Slightly smaller size to fit this specific matrix file structure cleanly
+displayLabel.Text = "Press Shift + B to start the video download..."
 displayLabel.Parent = mainAppleFrame
 Instance.new("UICorner", displayLabel).CornerRadius = UDim.new(0, 4)
 
 ------------------------------------------------
--- HTTP STREAMING CACHE ENGINE
+-- WORKING HTTP DOWNLOAD STREAM ENGINE
 ------------------------------------------------
 local function downloadVideoData()
 	if dataHasLoaded or isDownloading then return end
 	isDownloading = true
 	headerLabel.Text = "Downloading Frame Data..."
+	displayLabel.Text = "Fetching repository strings..."
 	
 	task.spawn(function()
+		-- Roblox LocalScripts execute web reads via game:HttpGet
 		local success, result = pcall(function()
-			return game:HttpGet("https://githubusercontent.com")
+			return game:HttpGet("https://raw.githubusercontent.com/F0gzin/sitesmeme/refs/heads/main/badapple.txt")
 		end)
 		
 		if success and result then
+			local emojies = {"▓", "▒", "░"}
 			local splitData = string.split(result, "\t")
+			
+			headerLabel.Text = "Converting Frames..."
+			-- Pre-process all string tables instantly before turning playback loop on
 			for idx, rawFrame in ipairs(splitData) do
-				local formatted = string.gsub(rawFrame, "1", "░")
-				formatted = string.gsub(formatted, "2", "▒")
-				formatted = string.gsub(formatted, "3", "█")
+				local formatted = string.gsub(rawFrame, "1", emojies[1])
+				formatted = string.gsub(formatted, "2", emojies[2])
+				formatted = string.gsub(formatted, "3", emojies[3])
 				table.insert(fullAnimationFrames, formatted)
 			end
 			
@@ -2596,22 +2602,23 @@ local function downloadVideoData()
 			dataHasLoaded = true
 			isDownloading = false
 			headerLabel.Text = "♪ Bad Apple !! ♫"
-			displayLabel.Text = "Ready! Press Shift + B again to play."
+			displayLabel.Text = "Success! " .. totalFramesLoaded .. " frames loaded.\nPress Shift + B again to play!"
+			if addLog then addLog("Bad Apple Loaded: " .. totalFramesLoaded .. " frames downloaded safely.") end
 		else
 			isDownloading = false
 			headerLabel.Text = "Download Failed"
-			displayLabel.Text = "Error streaming video data. Check exploit HttpGet settings."
+			displayLabel.Text = "Please make sure your executor supports HttpRequests.\nERROR: " .. tostring(result)
 		end
 	end)
 end
 
 ------------------------------------------------
--- ANIMATION REPRODUCTION ENGINE LOOP
+-- HIGH PRECISION PLAYBACK ENGINE LOOP
 ------------------------------------------------
 local isPlaying = false
 local currentFrame = 1
 local playbackTimer = 0
-local TARGET_FRAME_DELAY = 1 / 30 
+local TARGET_FRAME_DELAY = 1 / fps
 
 local function startBadApple()
 	mainAppleFrame.Visible = true
@@ -2624,8 +2631,6 @@ local function startBadApple()
 	isPlaying = true
 	currentFrame = 1
 	playbackTimer = 0
-	
-	if addLog then addLog("Playing Full Bad Apple (30 FPS Stream Enabled)") end
 end
 
 closeBtn.MouseButton1Click:Connect(function()
@@ -2638,12 +2643,13 @@ RunService.RenderStepped:Connect(function(dt)
 	
 	playbackTimer = playbackTimer + dt
 	if playbackTimer >= TARGET_FRAME_DELAY then
+		-- Delta skipping ensures absolute video pacing stays synced if framerates drop
 		local framesToAdvance = math.floor(playbackTimer / TARGET_FRAME_DELAY)
 		playbackTimer = playbackTimer - (framesToAdvance * TARGET_FRAME_DELAY)
 		
 		currentFrame = currentFrame + framesToAdvance
 		if currentFrame > totalFramesLoaded then
-			currentFrame = 1 
+			currentFrame = 1 -- Video completed loop sequence, rewind back to start frame
 		end
 		
 		displayLabel.Text = fullAnimationFrames[currentFrame]
@@ -2651,14 +2657,13 @@ RunService.RenderStepped:Connect(function(dt)
 end)
 
 ------------------------------------------------
--- SHIFT + B MODIFIER INPUT OBSERVER
+-- HOTKEY OBSERVER (SHIFT + B)
 ------------------------------------------------
 UIS.InputBegan:Connect(function(input, processed)
 	if scriptKilled then return end
 	if processed then return end
 	if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
 	
-	-- Check if 'B' is pressed while either Left Shift or Right Shift is actively held down
 	if input.KeyCode == Enum.KeyCode.B then
 		local shiftHeld = UIS:IsKeyDown(Enum.KeyCode.LeftShift) or UIS:IsKeyDown(Enum.KeyCode.RightShift)
 		if shiftHeld then
