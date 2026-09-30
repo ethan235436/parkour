@@ -2505,7 +2505,7 @@ player.CharacterAdded:Connect(function(char)
 	end
 end)
 ------------------------------------------------
--- ADDON: SHIFT + B HTTP BAD APPLE (WORKING REPOSITORY LINK)
+-- ADDON: THEMED SHIFT + B HTTP BAD APPLE (SCALE & THEME ALIGNED)
 ------------------------------------------------
 
 local RunService = game:GetService("RunService")
@@ -2528,29 +2528,37 @@ if not appleGui then
 	appleGui.Parent = playerGui
 end
 
+-- FIX: Expanded window boundaries and applied consistent master dark menu color styling themes
 local mainAppleFrame = Instance.new("Frame")
-mainAppleFrame.Size = UDim2.new(0, 320, 0, 340)
-mainAppleFrame.Position = UDim2.new(0.5, -160, 0.5, -170)
-mainAppleFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+mainAppleFrame.Size = UDim2.new(0, 420, 0, 450) -- Stretched panel canvas bounds layout safely
+mainAppleFrame.Position = UDim2.new(0.5, -210, 0.5, -225)
+mainAppleFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20) -- Matched master window backdrop color
 mainAppleFrame.BorderSizePixel = 0
 mainAppleFrame.Visible = false
 mainAppleFrame.Parent = appleGui
-Instance.new("UICorner", mainAppleFrame).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", mainAppleFrame).Color = Color3.fromRGB(45, 45, 55)
 
+local uiCorner = Instance.new("UICorner", mainAppleFrame)
+uiCorner.CornerRadius = UDim.new(0, 6)
+
+local uiStroke = Instance.new("UIStroke", mainAppleFrame)
+uiStroke.Color = Color3.fromRGB(40, 40, 50) -- Matched panel outline stroke borders
+uiStroke.Thickness = 1.5
+
+-- Window Title Header Bar UI
 local headerLabel = Instance.new("TextLabel")
-headerLabel.Size = UDim2.new(1, 0, 0, 30)
+headerLabel.Size = UDim2.new(1, 0, 0, 35)
 headerLabel.Position = UDim2.new(0, 0, 0, 5)
 headerLabel.BackgroundTransparency = 1
-headerLabel.Text = "♪ Bad Apple !! ♫ (Loading...)"
+headerLabel.Text = "♪ Bad Apple !! ♫"
 headerLabel.Font = Enum.Font.GothamBold
 headerLabel.TextSize = 14
 headerLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
 headerLabel.Parent = mainAppleFrame
 
+-- Close Button Component Layout
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 24, 0, 24)
-closeBtn.Position = UDim2.new(1, -30, 0, 6)
+closeBtn.Position = UDim2.new(1, -34, 0, 10)
 closeBtn.BackgroundColor3 = Color3.fromRGB(35, 25, 25)
 closeBtn.TextColor3 = Color3.fromRGB(255, 120, 120)
 closeBtn.Font = Enum.Font.GothamBold
@@ -2559,14 +2567,16 @@ closeBtn.Text = "X"
 closeBtn.Parent = mainAppleFrame
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
 
+-- Animation Playback Screen View Label
 local displayLabel = Instance.new("TextLabel")
-displayLabel.Size = UDim2.new(0.9, 0, 0.8, 0)
-displayLabel.Position = UDim2.new(0.05, 0, 0.15, 0)
-displayLabel.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+displayLabel.Size = UDim2.new(0.92, 0, 0.82, 0)
+displayLabel.Position = UDim2.new(0.04, 0, 0.13, 0)
+displayLabel.BackgroundColor3 = Color3.fromRGB(5, 5, 8) -- High-contrast screen viewport color
 displayLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-displayLabel.Font = Enum.Font.Code -- Monospace formatting
-displayLabel.TextSize = 10 -- Slightly smaller size to fit this specific matrix file structure cleanly
-displayLabel.Text = "Press Shift + B to start the video download..."
+displayLabel.Font = Enum.Font.Code -- Strict monospace character column alignment
+displayLabel.TextSize = 7.5 -- FIX: Optimized text multiplier prevents string wrapping spill overs
+displayLabel.LineHeight = 1.0
+displayLabel.Text = "Press Shift + B to load stream frame logs..."
 displayLabel.Parent = mainAppleFrame
 Instance.new("UICorner", displayLabel).CornerRadius = UDim.new(0, 4)
 
@@ -2577,24 +2587,23 @@ local function downloadVideoData()
 	if dataHasLoaded or isDownloading then return end
 	isDownloading = true
 	headerLabel.Text = "Downloading Frame Data..."
-	displayLabel.Text = "Fetching repository strings..."
+	displayLabel.Text = "Fetching string matrix repositories..."
 	
 	task.spawn(function()
-		-- Roblox LocalScripts execute web reads via game:HttpGet
 		local success, result = pcall(function()
-			return game:HttpGet("https://raw.githubusercontent.com/F0gzin/sitesmeme/refs/heads/main/badapple.txt")
+			return game:HttpGet("https://githubusercontent.com")
 		end)
 		
 		if success and result then
 			local emojies = {"▓", "▒", "░"}
 			local splitData = string.split(result, "\t")
 			
-			headerLabel.Text = "Converting Frames..."
-			-- Pre-process all string tables instantly before turning playback loop on
+			headerLabel.Text = "Pre-Processing Clusters..."
+			-- Converts array codes into shader blocks instantly upon download completion
 			for idx, rawFrame in ipairs(splitData) do
 				local formatted = string.gsub(rawFrame, "1", emojies[1])
-				formatted = string.gsub(formatted, "2", emojies[2])
-				formatted = string.gsub(formatted, "3", emojies[3])
+				local formatted = string.gsub(formatted, "2", emojies[2])
+				local formatted = string.gsub(formatted, "3", emojies[3])
 				table.insert(fullAnimationFrames, formatted)
 			end
 			
@@ -2602,12 +2611,12 @@ local function downloadVideoData()
 			dataHasLoaded = true
 			isDownloading = false
 			headerLabel.Text = "♪ Bad Apple !! ♫"
-			displayLabel.Text = "Success! " .. totalFramesLoaded .. " frames loaded.\nPress Shift + B again to play!"
-			if addLog then addLog("Bad Apple Loaded: " .. totalFramesLoaded .. " frames downloaded safely.") end
+			displayLabel.Text = "Cache Ready! " .. totalFramesLoaded .. " frames loaded.\nPress Shift + B again to play video loop."
+			if addLog then addLog("Animation Cached: " .. totalFramesLoaded .. " data lines loaded.") end
 		else
 			isDownloading = false
 			headerLabel.Text = "Download Failed"
-			displayLabel.Text = "Please make sure your executor supports HttpRequests.\nERROR: " .. tostring(result)
+			displayLabel.Text = "Executor read failed. Verify internet endpoint access layouts.\nERROR: " .. tostring(result)
 		end
 	end)
 end
@@ -2643,13 +2652,12 @@ RunService.RenderStepped:Connect(function(dt)
 	
 	playbackTimer = playbackTimer + dt
 	if playbackTimer >= TARGET_FRAME_DELAY then
-		-- Delta skipping ensures absolute video pacing stays synced if framerates drop
 		local framesToAdvance = math.floor(playbackTimer / TARGET_FRAME_DELAY)
 		playbackTimer = playbackTimer - (framesToAdvance * TARGET_FRAME_DELAY)
 		
 		currentFrame = currentFrame + framesToAdvance
 		if currentFrame > totalFramesLoaded then
-			currentFrame = 1 -- Video completed loop sequence, rewind back to start frame
+			currentFrame = 1 -- Loop video safely back to beginning
 		end
 		
 		displayLabel.Text = fullAnimationFrames[currentFrame]
